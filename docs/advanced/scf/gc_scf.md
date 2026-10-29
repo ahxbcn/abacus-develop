@@ -41,6 +41,9 @@ INPUT_PARAMETERS
   gce_qk 3.0
   gce_qkappa 0.25
   gce_qm 0.75
+  gce_pcc_gaussian true
+  gce_pcc_dist_edge 4.0
+  gce_pcc_gau_c 0.1
 ```
 
 The prototype uses the planar-averaged electrostatic potential at the vacuum
@@ -54,3 +57,8 @@ implementation.
 
 `gce_qk`, `gce_qkappa`, and `gce_qm` control the modified Kerker preconditioner
 and finite-`G=0` Pulay metric used by the GC density mixing.
+
+With `gce_pcc_gaussian true`, the existing PCC 2D multipole correction is
+replaced by two Gaussian counter-charge sheets. `gce_pcc_dist_edge` sets their
+distance from the cell boundary and `gce_pcc_gau_c` sets their Gaussian width,
+both in angstrom.

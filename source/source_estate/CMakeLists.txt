@@ -23,6 +23,7 @@ list(APPEND objects
     module_pot/pot_xc.cpp
     module_pot/pot_local.cpp
     module_pot/pot_pcc.cpp
+    module_pot/pot_planar_counter_charge.cpp
     module_pot/pot_sccs.cpp
     module_pot/sccs_pcc_0d.cpp
     module_pot/sccs_pcc_2d.cpp

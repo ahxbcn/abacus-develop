@@ -15,6 +15,7 @@ struct Input_para;
 namespace elecstate
 {
 class PotPcc;
+class PotPlanarCounterCharge;
 class TDFieldManager;
 
 /**
@@ -238,6 +239,7 @@ class Potential : public PotBase
 
     // the registered PCC component, or nullptr when PCC is off
     const PotPcc* pcc_component() const;
+    const PotPlanarCounterCharge* planar_counter_charge_component() const;
     PotBase* make_sccs_pot(const Input_para& input);
 
     std::vector<double> v_eff_fixed;

@@ -1,5 +1,6 @@
 #include "potential_new.h"
 #include "pot_pcc.h"
+#include "pot_planar_counter_charge.h"
 #include "pot_sccs.h"
 
 #include "pot_ml_exx.h"
@@ -375,8 +376,26 @@ const PotPcc* Potential::pcc_component() const
     return nullptr;
 }
 
+const PotPlanarCounterCharge* Potential::planar_counter_charge_component() const
+{
+    for (const PotBase* component : this->components)
+    {
+        const PotPlanarCounterCharge* pcc = dynamic_cast<const PotPlanarCounterCharge*>(component);
+        if (pcc != nullptr)
+        {
+            return pcc;
+        }
+    }
+    return nullptr;
+}
+
 double Potential::pcc_energy_rydberg() const
 {
+    const PotPlanarCounterCharge* planar = this->planar_counter_charge_component();
+    if (planar != nullptr)
+    {
+        return planar->get_energy();
+    }
     const PotPcc* pcc = this->pcc_component();
     if (pcc == nullptr)
     {
@@ -387,6 +406,11 @@ double Potential::pcc_energy_rydberg() const
 
 const std::vector<double>* Potential::pcc_electron_potential() const
 {
+    const PotPlanarCounterCharge* planar = this->planar_counter_charge_component();
+    if (planar != nullptr)
+    {
+        return &planar->electron_potential();
+    }
     const PotPcc* pcc = this->pcc_component();
     if (pcc == nullptr)
     {
@@ -416,6 +440,10 @@ void Potential::set_expected_electron_count(const double electron_count)
         if (auto* sccs = dynamic_cast<PotSccs*>(this->components[i]))
         {
             sccs->set_electron_count(electron_count);
+        }
+        if (auto* planar = dynamic_cast<PotPlanarCounterCharge*>(this->components[i]))
+        {
+            planar->set_electron_count(electron_count);
         }
     }
 }

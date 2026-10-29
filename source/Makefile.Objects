@@ -285,6 +285,7 @@ OBJS_ELECSTAT=elecstate.o\
     pcc_0d.o\
     pcc_2d.o\
     pot_pcc.o\
+    pot_planar_counter_charge.o\
     pot_sccs.o\
     sccs_pcc_0d.o\
     sccs_pcc_2d.o\

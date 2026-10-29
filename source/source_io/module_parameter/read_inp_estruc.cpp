@@ -350,6 +350,44 @@ work-function reference.)";
         this->add_item(item);
     }
     {
+        Input_Item item("gce_pcc_gaussian");
+        item.annotation = "use Gaussian planar counter charge for GC-SCF";
+        item.category = "Electronic structure";
+        item.type = "Boolean";
+        item.description = "Selects the Gaussian planar counter-charge model instead of the existing PCC 2D multipole correction for GC-SCF.";
+        item.default_value = "false";
+        item.unit = "";
+        item.set_availability("gce==true");
+        read_sync_bool(input.gce_pcc_gaussian);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_pcc_dist_edge");
+        item.annotation = "Gaussian planar counter-charge distance from the cell edge";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "Distance from the cell boundary to each Gaussian counter-charge plane.";
+        item.default_value = "4.0";
+        item.unit = "angstrom";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true and gce_pcc_gaussian==true");
+        read_sync_double(input.gce_pcc_dist_edge);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_pcc_gau_c");
+        item.annotation = "Gaussian planar counter-charge width";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "Standard deviation of the Gaussian counter-charge planes.";
+        item.default_value = "0.1";
+        item.unit = "angstrom";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true and gce_pcc_gaussian==true");
+        read_sync_double(input.gce_pcc_gau_c);
+        this->add_item(item);
+    }
+    {
         Input_Item item("nupdown");
         item.domain.add_requirement("nspin==1", "nupdown==0");
         item.annotation = "the difference number of electrons between spin-up "

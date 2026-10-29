@@ -1,10 +1,12 @@
 #include "source_estate/module_pot/pot_pcc.h"
+#include "source_estate/module_pot/pot_planar_counter_charge.h"
 #include "source_base/constants.h"
 #include "source_base/global_variable.h"
 
 #include <gtest/gtest.h>
 
 #include <cstdio>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 
@@ -59,6 +61,35 @@ class PotPccTest : public testing::Test
     Charge charge;
     std::vector<double> density;
     double* channels[2] = {nullptr, nullptr};
+};
+
+class PotPlanarCounterChargeTest : public testing::Test
+{
+  protected:
+    void SetUp() override
+    {
+        basis.initgrids(4, ModuleBase::Matrix3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0), 10.0);
+        basis.initparameters(false, 20);
+        basis.setuptransform();
+        basis.collect_local_pw();
+        cell.lat0 = 10.0;
+        cell.omega = 1000.0;
+        cell.tpiba = ModuleBase::TWO_PI / cell.lat0;
+        cell.tpiba2 = cell.tpiba * cell.tpiba;
+        cell.latvec = ModuleBase::Matrix3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+        cell.ntype = 1;
+        cell.nat = 1;
+        atom.na = 1;
+        atom.mass = 1.0;
+        atom.ncpp.zv = 1.0;
+        atom.tau = {ModuleBase::Vector3<double>(0.5, 0.5, 0.5)};
+        cell.atoms = &atom;
+    }
+
+    ModulePW::PW_Basis basis{"cpu", "double"};
+    UnitCell cell;
+    Atom atom;
+    Charge charge;
 };
 } // namespace
 
@@ -210,4 +241,51 @@ TEST_F(PotPccTest, ReportsGridChargeMismatchAndUsesGridCharge)
     EXPECT_NE(mismatched_text.str().find("PCC net charge differs from the expected value"), std::string::npos);
     EXPECT_DOUBLE_EQ(mismatched.get_energy(), matched.get_energy());
     std::remove(log_name.c_str());
+}
+
+TEST_F(PotPlanarCounterChargeTest, ZeroCounterChargeLeavesPotentialAndEnergyZero)
+{
+    elecstate::PotPlanarCounterCharge correction(&basis, 1.0, 2, 1.0, 0.5);
+    ModuleBase::matrix potential(1, basis.nrxx);
+    correction.cal_v_eff(&charge, &cell, potential);
+
+    EXPECT_DOUBLE_EQ(correction.get_energy(), 0.0);
+    EXPECT_EQ(correction.electron_potential().size(), static_cast<std::size_t>(basis.nrxx));
+    for (int ir = 0; ir < basis.nrxx; ++ir)
+    {
+        EXPECT_DOUBLE_EQ(correction.electron_potential()[ir], 0.0);
+        EXPECT_DOUBLE_EQ(potential(0, ir), 0.0);
+    }
+}
+
+TEST_F(PotPlanarCounterChargeTest, ChargedSlabProducesFiniteSpinIndependentPotential)
+{
+    elecstate::PotPlanarCounterCharge correction(&basis, 2.0, 2, 1.0, 0.5);
+    ModuleBase::matrix potential(2, basis.nrxx);
+    correction.cal_v_eff(&charge, &cell, potential);
+
+    EXPECT_TRUE(std::isfinite(correction.get_energy()));
+    ASSERT_EQ(correction.electron_potential().size(), static_cast<std::size_t>(basis.nrxx));
+    double average_potential = 0.0;
+    for (int ir = 0; ir < basis.nrxx; ++ir)
+    {
+        average_potential += correction.electron_potential()[ir];
+        EXPECT_DOUBLE_EQ(potential(0, ir), potential(1, ir));
+    }
+    EXPECT_NEAR(average_potential / basis.nrxx, 0.0, 1.0e-12);
+
+    const std::vector<double> potential_one = correction.electron_potential();
+    elecstate::PotPlanarCounterCharge doubled(&basis, 3.0, 2, 1.0, 0.5);
+    ModuleBase::matrix doubled_potential(1, basis.nrxx);
+    doubled.cal_v_eff(&charge, &cell, doubled_potential);
+    EXPECT_TRUE(std::isfinite(doubled.get_energy()));
+    for (int ir = 0; ir < basis.nrxx; ++ir)
+    {
+        EXPECT_NEAR(doubled.electron_potential()[ir], 2.0 * potential_one[ir], 1.0e-12);
+    }
+
+    correction.set_electron_count(1.0);
+    potential.zero_out();
+    correction.cal_v_eff(&charge, &cell, potential);
+    EXPECT_DOUBLE_EQ(correction.get_energy(), 0.0);
 }

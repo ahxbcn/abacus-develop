@@ -93,6 +93,9 @@ struct Input_para
     double gce_qk = 3.0;               ///< Kerker denominator parameter in bohr^-1
     double gce_qkappa = 0.25;          ///< finite-G=0 metric parameter in bohr^-1
     double gce_qm = 0.75;              ///< Pulay metric parameter in bohr^-1
+    bool gce_pcc_gaussian = false;     ///< use Gaussian planar counter charge for GC-SCF
+    double gce_pcc_dist_edge = 4.0;    ///< Gaussian plane distance from cell edge in angstrom
+    double gce_pcc_gau_c = 0.1;        ///< Gaussian planar counter-charge width in angstrom
     double nupdown = 0.0;
     std::string dft_functional = "default"; ///< input DFT functional.
     int gga_grad = 0; ///< Noncollinear GGA: 0 original, 1 local axis, 2 regularized mapped-density LCA.

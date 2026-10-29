@@ -3,6 +3,7 @@
 #include "gatefield.h"
 #include "pot_local.h"
 #include "pot_pcc.h"
+#include "pot_planar_counter_charge.h"
 #include "pot_sccs.h"
 #include "pot_sep.h"
 #include "pot_surchem.h"
@@ -10,6 +11,7 @@
 #include "potential_new.h"
 #include "source_base/global_function.h"
 #include "source_base/global_variable.h"
+#include "source_base/constants.h"
 #include "source_base/timer.h"
 #include "source_base/tool_quit.h"
 #include "source_base/tool_title.h"
@@ -64,6 +66,13 @@ PotBase* Potential::get_pot_type(const std::string& pot_type, const Input_para& 
         if (pot_type == "pcc")
         {
             return new PotPcc(this->rho_basis_, electron_count);
+        }
+        if (input.gce && input.gce_pcc_gaussian)
+        {
+            const double distance_from_edge = input.gce_pcc_dist_edge / ModuleBase::BOHR_TO_A;
+            const double gaussian_width = input.gce_pcc_gau_c / ModuleBase::BOHR_TO_A;
+            return new PotPlanarCounterCharge(this->rho_basis_, electron_count, input.pcc_2d_axis,
+                                              distance_from_edge, gaussian_width);
         }
         const int open_axis = input.pcc_2d_axis;
         return new PotPcc(this->rho_basis_, PotPcc::Dimension::slab, open_axis, electron_count);

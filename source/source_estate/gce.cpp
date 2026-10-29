@@ -131,6 +131,13 @@ void validate_gce_input(const Input_para& input)
         ModuleBase::WARNING_QUIT("validate_gce_input",
                                  "GC-SCF prototype requires assume_isolated=pcc_2d");
     }
+    if (input.gce_pcc_gaussian
+        && (input.gce_pcc_dist_edge <= 0.0 || input.gce_pcc_gau_c <= 0.0
+            || !std::isfinite(input.gce_pcc_dist_edge) || !std::isfinite(input.gce_pcc_gau_c)))
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "Gaussian planar counter charge requires positive distance and width");
+    }
     if (input.scf_thr_type != 1)
     {
         ModuleBase::WARNING_QUIT("validate_gce_input",
