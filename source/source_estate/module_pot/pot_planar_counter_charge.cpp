@@ -169,6 +169,19 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
 
     electron_potential_.assign(basis.nrxx, 0.0);
     basis.recip2real(potential_g.data(), electron_potential_.data());
+    double electron_cross_energy = 0.0;
+    const int density_channels = charge->nspin == 4 ? 1 : charge->nspin;
+    for (int spin = 0; spin < density_channels; ++spin)
+    {
+        for (int ir = 0; ir < basis.nrxx; ++ir)
+        {
+            electron_cross_energy += charge->rho[spin][ir] * electron_potential_[ir];
+        }
+    }
+    electron_cross_energy *= dv;
+#ifdef __MPI
+    Parallel_Reduce::reduce_pool(electron_cross_energy);
+#endif
     for (int spin = 0; spin < potential.nr; ++spin)
     {
         for (int ir = 0; ir < basis.nrxx; ++ir)
@@ -176,7 +189,7 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
             potential(spin, ir) += electron_potential_[ir];
         }
     }
-    energy_rydberg_ = self_energy + ion_cross_energy;
+    energy_rydberg_ = self_energy + ion_cross_energy + electron_cross_energy;
     ModuleBase::timer::end("PotPlanarCounterCharge", "cal_v_eff");
 }
 

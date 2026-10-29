@@ -12,9 +12,8 @@ namespace elecstate
 ///
 /// The total counter charge is chosen to cancel the DFT charge
 /// (ions minus electrons). The resulting electrostatic potential is added to
-/// the electronic effective potential. The energy correction contains the ion
-/// cross term and the counter-charge self energy; the electron cross term is
-/// already present in the band energy.
+/// the electronic effective potential. The energy correction contains the
+/// counter-charge self energy and its cross terms with both ions and electrons.
 class PotPlanarCounterCharge : public PotBase
 {
   public:

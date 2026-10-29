@@ -84,12 +84,18 @@ class PotPlanarCounterChargeTest : public testing::Test
         atom.ncpp.zv = 1.0;
         atom.tau = {ModuleBase::Vector3<double>(0.5, 0.5, 0.5)};
         cell.atoms = &atom;
+        density.assign(basis.nrxx, 0.0);
+        channels[0] = density.data();
+        charge.rho = channels;
+        charge.nspin = 1;
     }
 
     ModulePW::PW_Basis basis{"cpu", "double"};
     UnitCell cell;
     Atom atom;
     Charge charge;
+    std::vector<double> density;
+    double* channels[4] = {nullptr, nullptr, nullptr, nullptr};
 };
 } // namespace
 
@@ -304,4 +310,20 @@ TEST_F(PotPlanarCounterChargeTest, ChargedSlabProducesFiniteSpinIndependentPoten
     potential.zero_out();
     correction.cal_v_eff(&charge, &cell, potential);
     EXPECT_DOUBLE_EQ(correction.get_energy(), 0.0);
+}
+
+TEST_F(PotPlanarCounterChargeTest, EnergyIncludesElectronCounterChargeCrossTerm)
+{
+    elecstate::PotPlanarCounterCharge correction(&basis, 2.0, 2, 1.0, 0.5);
+    ModuleBase::matrix potential(1, basis.nrxx);
+    correction.cal_v_eff(&charge, &cell, potential);
+    const double energy_without_electrons = correction.get_energy();
+
+    density[0] = 0.25;
+    potential.zero_out();
+    correction.cal_v_eff(&charge, &cell, potential);
+
+    const double volume_element = cell.omega / basis.nxyz;
+    const double expected_cross_energy = density[0] * correction.electron_potential()[0] * volume_element;
+    EXPECT_NEAR(correction.get_energy() - energy_without_electrons, expected_cross_energy, 1.0e-12);
 }

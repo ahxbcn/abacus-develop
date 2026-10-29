@@ -67,9 +67,9 @@ distance from the cell boundary and `gce_pcc_gau_c` sets their Gaussian width,
 both in angstrom.
 
 For this Gaussian model the ion-counter-charge cross energy contributes an
-analytic force. The electron-counter-charge cross term is already represented
-by the band energy, and its explicit derivative vanishes because the Gaussian
-sheets are tied to the cell rather than to ionic coordinates. Set `cal_force 1`
-to evaluate SCF and ionic forces in this mode. Other PCC variants still reject
-`cal_force 1`, and every GC-SCF mode rejects `cal_stress 1` until the full
-cell-derivative terms are implemented.
+analytic force. The energy correction also contains the counter-charge self
+energy and its electron cross term. The electron cross term has no explicit
+ionic derivative because the Gaussian sheets are tied to the cell rather than
+to ionic coordinates. Set `cal_force 1` to evaluate SCF and ionic forces in
+this mode. Other PCC variants still reject `cal_force 1`, and every GC-SCF mode
+rejects `cal_stress 1` until the full cell-derivative terms are implemented.
