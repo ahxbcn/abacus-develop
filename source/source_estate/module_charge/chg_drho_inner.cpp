@@ -18,8 +18,31 @@ namespace detail
 namespace
 {
 
+double gc_metric_weight(const MixingConfig& cfg, const double gg, const double tpiba)
+{
+    if (!cfg.gc_mixing)
+    {
+        return 1.0 / gg;
+    }
+    const double reciprocal_scale = ModuleBase::BOHR_TO_A / tpiba;
+    const double qk = cfg.gc_qk * reciprocal_scale;
+    const double qkappa = cfg.gc_qkappa * reciprocal_scale;
+    const double qm = cfg.gc_qm * reciprocal_scale;
+    const double qk2 = qk * qk;
+    const double qkappa2 = qkappa * qkappa;
+    const double qm2 = qm * qm;
+    const double metric = (gg + qkappa2 + qm2) / (gg + qkappa2);
+    const double energy_scale = gg > 1.0e-14 ? gg : qk2;
+    return metric / energy_scale;
+}
+
 /// Coulomb-metric sum over G!=0 for a single spin channel
-double coulomb_sum_single(const std::complex<double>* g1, const std::complex<double>* g2, const ModulePW::PW_Basis& rhopw, const double fac, const double g0_weight)
+double coulomb_sum_single(const std::complex<double>* g1,
+                          const std::complex<double>* g2,
+                          const ModulePW::PW_Basis& rhopw,
+                          const MixingConfig& cfg,
+                          const double fac,
+                          const double tpiba)
 {
     const int ig0 = rhopw.ig_gge0;
     double sum = 0.0;
@@ -30,10 +53,13 @@ double coulomb_sum_single(const std::complex<double>* g1, const std::complex<dou
     {
         if (ig == ig0)
         {
-            sum += g0_weight * (conj(g1[ig]) * g2[ig]).real();
+            if (cfg.gc_mixing)
+            {
+                sum += gc_metric_weight(cfg, rhopw.gg[ig], tpiba) * (conj(g1[ig]) * g2[ig]).real();
+            }
             continue;
         }
-        sum += (conj(g1[ig]) * g2[ig]).real() / rhopw.gg[ig];
+        sum += gc_metric_weight(cfg, rhopw.gg[ig], tpiba) * (conj(g1[ig]) * g2[ig]).real();
     }
     return sum * fac;
 }
@@ -43,11 +69,10 @@ double recip_rho_nspin1(const std::complex<double>* rho1,
                         const std::complex<double>* rho2,
                         const ModulePW::PW_Basis& rhopw,
                         const MixingConfig& cfg,
-                        const double fac)
+                        const double fac,
+                        const double tpiba)
 {
-    const double q0 = std::max(cfg.mixing_gg0, 1.0e-8);
-    const double g0_weight = cfg.gc_mixing ? 1.0 / (q0 * q0) : 0.0;
-    return coulomb_sum_single(rho1, rho2, rhopw, fac, g0_weight);
+    return coulomb_sum_single(rho1, rho2, rhopw, cfg, fac, tpiba);
 }
 
 /// Collinear magnetic case (nspin==2)
@@ -56,15 +81,14 @@ double recip_rho_nspin2(const std::complex<double>* rho1,
                         const ModulePW::PW_Basis& rhopw,
                         const MixingConfig& cfg,
                         const double fac,
-                        const double fac2)
+                        const double fac2,
+                        const double tpiba)
 {
     const int npw = rhopw.npw;
     const int ig0 = rhopw.ig_gge0;
 
     // (1) density part: |rho_up + rho_dn|^2 / G^2
     double sum = 0.0;
-    const double q0 = std::max(cfg.mixing_gg0, 1.0e-8);
-    const double g0_weight = cfg.gc_mixing ? 1.0 / (q0 * q0) : 0.0;
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+ : sum)
 #endif
@@ -72,10 +96,15 @@ double recip_rho_nspin2(const std::complex<double>* rho1,
     {
         if (ig == ig0)
         {
-            sum += g0_weight * (conj(rho1[ig] + rho1[ig + npw]) * (rho2[ig] + rho2[ig + npw])).real();
+            if (cfg.gc_mixing)
+            {
+                sum += gc_metric_weight(cfg, rhopw.gg[ig], tpiba)
+                       * (conj(rho1[ig] + rho1[ig + npw]) * (rho2[ig] + rho2[ig + npw])).real();
+            }
             continue;
         }
-        sum += (conj(rho1[ig] + rho1[ig + npw]) * (rho2[ig] + rho2[ig + npw])).real() / rhopw.gg[ig];
+        sum += gc_metric_weight(cfg, rhopw.gg[ig], tpiba)
+               * (conj(rho1[ig] + rho1[ig + npw]) * (rho2[ig] + rho2[ig + npw])).real();
     }
     sum *= fac;
     if (cfg.gamma_only_pw)
@@ -283,7 +312,8 @@ double recip_hartree_nspin2(const std::complex<double>* rhog1,
                             const ModulePW::PW_Basis& rhopw,
                             const MixingConfig& cfg,
                             const double fac,
-                            const double fac2)
+                            const double fac2,
+                            const double tpiba)
 {
     const int npw = rhopw.npw;
     const int ig0 = rhopw.ig_gge0;
@@ -297,9 +327,14 @@ double recip_hartree_nspin2(const std::complex<double>* rhog1,
     {
         if (ig == ig0)
         {
+            if (cfg.gc_mixing)
+            {
+                sum += gc_metric_weight(cfg, rhopw.gg[ig], tpiba)
+                       * (conj(rhog1[ig]) * rhog2[ig]).real();
+            }
             continue;
         }
-        sum += (conj(rhog1[ig]) * rhog2[ig]).real() / rhopw.gg[ig];
+        sum += gc_metric_weight(cfg, rhopw.gg[ig], tpiba) * (conj(rhog1[ig]) * rhog2[ig]).real();
     }
     sum *= fac;
     if (cfg.gamma_only_pw)
@@ -366,15 +401,15 @@ double inner_product_recip_rho(const std::complex<double>* rho1,
     switch (nspin)
     {
     case 1:
-        sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, cfg, fac);
+        sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, cfg, fac, tpiba);
         break;
     case 2:
-        sum += recip_rho_nspin2(rhog1[0], rhog2[0], rhopw, cfg, fac, fac2);
+        sum += recip_rho_nspin2(rhog1[0], rhog2[0], rhopw, cfg, fac, fac2, tpiba);
         break;
     case 4:
         if (!cfg.domag && !cfg.domag_z)
         {
-            sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, cfg, fac);
+            sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, cfg, fac, tpiba);
         }
         else
         {
@@ -410,22 +445,19 @@ double inner_product_recip_hartree(const std::complex<double>* rhog1,
     static const double fac2 = ModuleBase::e2 * ModuleBase::FOUR_PI / (ModuleBase::TWO_PI * ModuleBase::TWO_PI);
 
     double sum = 0.0;
-    const double q0 = std::max(cfg.mixing_gg0, 1.0e-8);
-    const double g0_weight = cfg.gc_mixing ? 1.0 / (q0 * q0) : 0.0;
-
     if (cfg.nspin == 1)
     {
-        sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, fac, g0_weight);
+        sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, cfg, fac, tpiba);
     }
     else if (cfg.nspin == 2)
     {
-        sum += detail::recip_hartree_nspin2(rhog1, rhog2, rhopw, cfg, fac, fac2);
+        sum += detail::recip_hartree_nspin2(rhog1, rhog2, rhopw, cfg, fac, fac2, tpiba);
     }
     else if (cfg.nspin == 4)
     {
         if (!cfg.domag && !cfg.domag_z)
         {
-            sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, fac, g0_weight);
+            sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, cfg, fac, tpiba);
         }
         else if (cfg.mixing_angle <= 0)
         {

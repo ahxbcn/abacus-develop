@@ -38,6 +38,9 @@ INPUT_PARAMETERS
   gce_mixing_beta 0.2
   gce_wf_tol 5.0e-3
   gce_nelec_tol 1.0e-5
+  gce_qk 3.0
+  gce_qkappa 0.25
+  gce_qm 0.75
 ```
 
 The prototype uses the planar-averaged electrostatic potential at the vacuum
@@ -48,3 +51,6 @@ free-energy correction in the SCF log.
 The PCC 2D correction supplies the charged-slab electrostatic reference. It is
 not the Gaussian planar counter-charge model used by the corresponding CP2K
 implementation.
+
+`gce_qk`, `gce_qkappa`, and `gce_qm` control the modified Kerker preconditioner
+and finite-`G=0` Pulay metric used by the GC density mixing.

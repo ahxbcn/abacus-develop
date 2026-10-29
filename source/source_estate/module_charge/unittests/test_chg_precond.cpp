@@ -50,7 +50,10 @@ MixingConfig make_cfg()
         false,      // domag
         false,      // domag_z
         100,        // scf_nmax
-        false       // gc_mixing
+        false,      // gc_mixing
+        3.0,        // gc_qk
+        0.25,       // gc_qkappa
+        0.75        // gc_qm
     };
     return cfg;
 }
@@ -129,6 +132,27 @@ TEST_F(ChgPrecondTest, KerkerScreenRecipNspin1Filter)
     {
         const double gg = pw_basis.gg[ig];
         const double ref = std::max(gg / (gg + gg0), gg0_amin);
+        EXPECT_NEAR(drhog[ig].real(), ref, 1e-10);
+        EXPECT_NEAR(drhog[ig].imag(), ref, 1e-10);
+    }
+}
+
+TEST_F(ChgPrecondTest, KerkerScreenRecipGrandCanonicalFilter)
+{
+    MixingConfig cfg = make_cfg();
+    cfg.nspin = 1;
+    cfg.gc_mixing = true;
+
+    std::vector<std::complex<double>> drhog(pw_basis.npw, std::complex<double>(1.0, 1.0));
+    module_charge::kerker_screen_recip(cfg, &pw_basis, tpiba, drhog.data());
+
+    const double scale = ModuleBase::BOHR_TO_A / tpiba;
+    const double qk2 = std::pow(cfg.gc_qk * scale, 2);
+    const double qkappa2 = std::pow(cfg.gc_qkappa * scale, 2);
+    for (int ig = 0; ig < pw_basis.npw; ++ig)
+    {
+        const double gg = pw_basis.gg[ig];
+        const double ref = (gg + qkappa2) / (gg + qkappa2 + qk2);
         EXPECT_NEAR(drhog[ig].real(), ref, 1e-10);
         EXPECT_NEAR(drhog[ig].imag(), ref, 1e-10);
     }

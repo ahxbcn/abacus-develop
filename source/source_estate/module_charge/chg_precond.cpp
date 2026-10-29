@@ -70,6 +70,12 @@ void kerker_screen_recip(const MixingConfig& cfg,
         gg0 = std::pow(fac * ModuleBase::BOHR_TO_A / tpiba, 2);
 
         const double gg0_amin = cfg.mixing_gg0_min / amin;
+        const double gc_qk2 = cfg.gc_mixing
+                                  ? std::pow(cfg.gc_qk * ModuleBase::BOHR_TO_A / tpiba, 2)
+                                  : 0.0;
+        const double gc_qkappa2 = cfg.gc_mixing
+                                      ? std::pow(cfg.gc_qkappa * ModuleBase::BOHR_TO_A / tpiba, 2)
+                                      : 0.0;
 
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static, 512)
@@ -77,7 +83,15 @@ void kerker_screen_recip(const MixingConfig& cfg,
         for (int ig = 0; ig < rhopw->npw; ++ig)
         {
             double gg = rhopw->gg[ig];
-            double filter_g = std::max(gg / (gg + gg0), gg0_amin);
+            double filter_g = 0.0;
+            if (cfg.gc_mixing && is == 0)
+            {
+                filter_g = (gg + gc_qkappa2) / (gg + gc_qkappa2 + gc_qk2);
+            }
+            else
+            {
+                filter_g = std::max(gg / (gg + gg0), gg0_amin);
+            }
             drhog[is_idx + ig] *= filter_g;
         }
     }

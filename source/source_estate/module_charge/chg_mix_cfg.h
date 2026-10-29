@@ -28,6 +28,9 @@ struct MixingConfig
     bool domag_z;              ///< whether only the z-component magnetism is considered
     int scf_nmax;              ///< max SCF iterations, sizes the drho oscillation history (PARAM.inp.scf_nmax)
     bool gc_mixing;            ///< allow the G=0 charge density to enter the residual metric
+    double gc_qk;              ///< GC-SCF Kerker denominator parameter in bohr^-1
+    double gc_qkappa;          ///< GC-SCF finite-G=0 metric parameter in bohr^-1
+    double gc_qm;              ///< GC-SCF Pulay metric parameter in bohr^-1
 };
 
 #endif // CHG_MIX_CFG_H

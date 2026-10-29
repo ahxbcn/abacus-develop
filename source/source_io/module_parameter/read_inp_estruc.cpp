@@ -311,6 +311,45 @@ work-function reference.)";
         this->add_item(item);
     }
     {
+        Input_Item item("gce_qk");
+        item.annotation = "Kerker denominator parameter for GC-SCF";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "QK parameter in the modified Kerker preconditioner for grand-canonical SCF.";
+        item.default_value = "3.0";
+        item.unit = "bohr^-1";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_qk);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_qkappa");
+        item.annotation = "finite-G=0 metric parameter for GC-SCF";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "QKAPPA parameter in the modified Pulay metric and Kerker preconditioner for grand-canonical SCF.";
+        item.default_value = "0.25";
+        item.unit = "bohr^-1";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_qkappa);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_qm");
+        item.annotation = "Pulay metric parameter for GC-SCF";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "QM parameter in the modified Pulay metric for grand-canonical SCF.";
+        item.default_value = "0.75";
+        item.unit = "bohr^-1";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_qm);
+        this->add_item(item);
+    }
+    {
         Input_Item item("nupdown");
         item.domain.add_requirement("nspin==1", "nupdown==0");
         item.annotation = "the difference number of electrons between spin-up "

@@ -48,7 +48,10 @@ MixingConfig make_cfg(int nspin, double beta, double beta_mag, int scf_thr_type)
         false,       // domag
         false,       // domag_z
         100,         // scf_nmax
-        false        // gc_mixing
+        false,       // gc_mixing
+        3.0,         // gc_qk
+        0.25,        // gc_qkappa
+        0.75         // gc_qm
     };
     return cfg;
 }

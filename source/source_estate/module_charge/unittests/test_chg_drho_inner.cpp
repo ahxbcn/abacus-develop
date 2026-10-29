@@ -50,7 +50,10 @@ MixingConfig make_cfg(int nspin)
         false,    // domag
         false,    // domag_z
         100,      // scf_nmax
-        false     // gc_mixing
+        false,    // gc_mixing
+        3.0,      // gc_qk
+        0.25,     // gc_qkappa
+        0.75      // gc_qm
     };
     return cfg;
 }
@@ -134,7 +137,12 @@ TEST_F(ChgDrhoInnerTest, GrandCanonicalMetricIncludesGZero)
     const double inner = module_charge::inner_product_recip_hartree(
         rhog1.data(), rhog2.data(), pw_basis, cfg, 1.0, 1.0);
     const double fac = ModuleBase::e2 * ModuleBase::FOUR_PI;
-    EXPECT_NEAR(inner, fac * 12.0 / (cfg.mixing_gg0 * cfg.mixing_gg0) * 0.5, 1e-8);
+    const double qk = cfg.gc_qk * ModuleBase::BOHR_TO_A;
+    const double qkappa = cfg.gc_qkappa * ModuleBase::BOHR_TO_A;
+    const double qm = cfg.gc_qm * ModuleBase::BOHR_TO_A;
+    const double metric = (qkappa * qkappa + qm * qm) / (qkappa * qkappa);
+    const double weight = metric / (qk * qk);
+    EXPECT_NEAR(inner, fac * 12.0 * weight * 0.5, 1e-8);
 }
 
 TEST_F(ChgDrhoInnerTest, InnerProductRecipRhoNspin1ZeroInput)

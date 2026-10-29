@@ -136,12 +136,13 @@ void validate_gce_input(const Input_para& input)
         ModuleBase::WARNING_QUIT("validate_gce_input",
                                  "GC-SCF prototype requires scf_thr_type=1");
     }
-    if (input.mixing_gg0 <= 0.0 || !std::isfinite(input.gce_target_workfunction)
+    if (input.mixing_gg0 <= 0.0 || input.gce_qk <= 0.0 || input.gce_qkappa <= 0.0
+        || input.gce_qm <= 0.0 || !std::isfinite(input.gce_target_workfunction)
         || !std::isfinite(input.smearing_sigma) || input.smearing_sigma <= 0.0)
     {
         ModuleBase::WARNING_QUIT("validate_gce_input",
-                                 "GC-SCF prototype requires positive Kerker screening, target work function, "
-                                 "and smearing width");
+                                 "GC-SCF prototype requires positive Kerker/mixing parameters, target work "
+                                 "function, and smearing width");
     }
     if (input.nelec <= 0.0 || input.nbands <= 0 || input.nbands * 2 <= input.nelec)
     {

@@ -90,6 +90,9 @@ struct Input_para
     double gce_mixing_beta = 0.3;      ///< work-function mixing coefficient
     double gce_wf_tol = 1.0e-4;        ///< work-function convergence threshold in eV
     double gce_nelec_tol = 1.0e-6;     ///< electron-number convergence threshold
+    double gce_qk = 3.0;               ///< Kerker denominator parameter in bohr^-1
+    double gce_qkappa = 0.25;          ///< finite-G=0 metric parameter in bohr^-1
+    double gce_qm = 0.75;              ///< Pulay metric parameter in bohr^-1
     double nupdown = 0.0;
     std::string dft_functional = "default"; ///< input DFT functional.
     int gga_grad = 0; ///< Noncollinear GGA: 0 original, 1 local axis, 2 regularized mapped-density LCA.

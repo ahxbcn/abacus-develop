@@ -22,3 +22,6 @@ gce_target_workfunction 3.0
 gce_mixing_beta    0.2
 gce_wf_tol         5.0e-3
 gce_nelec_tol      1.0e-5
+gce_qk             3.0
+gce_qkappa         0.25
+gce_qm             0.75
