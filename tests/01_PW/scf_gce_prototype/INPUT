@@ -29,3 +29,4 @@ gce_pcc_gaussian   true
 gce_pcc_dist_edge  1.5
 gce_pcc_gau_c      0.5
 cal_force          1
+cal_stress         1

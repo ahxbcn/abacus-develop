@@ -97,6 +97,77 @@ class PotPlanarCounterChargeTest : public testing::Test
     std::vector<double> density;
     double* channels[4] = {nullptr, nullptr, nullptr, nullptr};
 };
+
+double planar_counter_charge_energy_under_strain(const UnitCell& cell,
+                                                 const ModulePW::PW_Basis& reference_basis,
+                                                 const ModuleBase::Matrix3& deformation,
+                                                 const double electron_count,
+                                                 const int open_axis,
+                                                 const double distance_from_edge,
+                                                 const double gaussian_width,
+                                                 const std::vector<double>& density)
+{
+    const ModuleBase::Matrix3 strained_latvec = cell.latvec * deformation;
+    const double strained_omega = cell.omega * deformation.Det();
+    const std::string basis_device = "cpu";
+    const std::string basis_precision = "double";
+    ModulePW::PW_Basis basis(basis_device, basis_precision);
+    basis.initgrids(cell.lat0,
+                    strained_latvec,
+                    reference_basis.nx,
+                    reference_basis.ny,
+                    reference_basis.nz);
+    const double wavefunction_cutoff = reference_basis.ggecut * reference_basis.tpiba2;
+    basis.initparameters(reference_basis.gamma_only,
+                         wavefunction_cutoff,
+                         reference_basis.distribution_type,
+                         reference_basis.xprime);
+    basis.setuptransform();
+    basis.collect_local_pw();
+
+    UnitCell strained_cell;
+    strained_cell.lat0 = cell.lat0;
+    strained_cell.latvec = strained_latvec;
+    strained_cell.omega = strained_omega;
+    strained_cell.tpiba = cell.tpiba;
+    strained_cell.tpiba2 = cell.tpiba2;
+    strained_cell.ntype = cell.ntype;
+    strained_cell.nat = cell.nat;
+    std::vector<Atom> strained_atoms(cell.ntype);
+    for (int itype = 0; itype < cell.ntype; ++itype)
+    {
+        strained_atoms[itype].na = cell.atoms[itype].na;
+        strained_atoms[itype].mass = cell.atoms[itype].mass;
+        strained_atoms[itype].ncpp.zv = cell.atoms[itype].ncpp.zv;
+        strained_atoms[itype].ncpp.psd = cell.atoms[itype].ncpp.psd;
+        strained_atoms[itype].tau.resize(cell.atoms[itype].na);
+        for (int iatom = 0; iatom < cell.atoms[itype].na; ++iatom)
+        {
+            strained_atoms[itype].tau[iatom] = cell.atoms[itype].tau[iatom] * deformation;
+        }
+    }
+    strained_cell.atoms = strained_atoms.data();
+
+    const double volume_scale = cell.omega / strained_omega;
+    std::vector<double> strained_density(density.size(), 0.0);
+    for (std::size_t ir = 0; ir < density.size(); ++ir)
+    {
+        strained_density[ir] = density[ir] * volume_scale;
+    }
+    double* density_channels[1] = {strained_density.data()};
+    Charge charge;
+    charge.rho = density_channels;
+    charge.nspin = 1;
+    const int strained_nrxx = basis.nrxx;
+    ModuleBase::matrix potential(1, strained_nrxx);
+    elecstate::PotPlanarCounterCharge correction(&basis,
+                                                 electron_count,
+                                                 open_axis,
+                                                 distance_from_edge,
+                                                 gaussian_width);
+    correction.cal_v_eff(&charge, &strained_cell, potential);
+    return correction.get_energy();
+}
 } // namespace
 
 TEST_F(PotPccTest, NeutralDipoleProducesConsistentEnergyPotentialAndForce)
@@ -326,4 +397,40 @@ TEST_F(PotPlanarCounterChargeTest, EnergyIncludesElectronCounterChargeCrossTerm)
     const double volume_element = cell.omega / basis.nxyz;
     const double expected_cross_energy = density[0] * correction.electron_potential()[0] * volume_element;
     EXPECT_NEAR(correction.get_energy() - energy_without_electrons, expected_cross_energy, 1.0e-12);
+}
+
+TEST_F(PotPlanarCounterChargeTest, StressMatchesStrainDerivativeOfCorrectionEnergy)
+{
+    density[0] = 0.25;
+    elecstate::PotPlanarCounterCharge correction(&basis, 2.0, 2, 1.0, 0.5);
+    ModuleBase::matrix potential(1, basis.nrxx);
+    correction.cal_v_eff(&charge, &cell, potential);
+    ModuleBase::matrix stress(3, 3);
+    correction.add_stress(cell, stress);
+
+    const double step = 1.0e-3;
+    ModuleBase::Matrix3 plus_deformation;
+    ModuleBase::Matrix3 minus_deformation;
+    plus_deformation.e33 = 1.0 + step;
+    minus_deformation.e33 = 1.0 - step;
+    const double plus_energy = planar_counter_charge_energy_under_strain(cell,
+                                                                         basis,
+                                                                         plus_deformation,
+                                                                         2.0,
+                                                                         2,
+                                                                         1.0,
+                                                                         0.5,
+                                                                         density);
+    const double minus_energy = planar_counter_charge_energy_under_strain(cell,
+                                                                          basis,
+                                                                          minus_deformation,
+                                                                          2.0,
+                                                                          2,
+                                                                          1.0,
+                                                                          0.5,
+                                                                          density);
+    const double numerical_stress = -(plus_energy - minus_energy) / (2.0 * step * cell.omega);
+    EXPECT_NEAR(stress(2, 2), numerical_stress, 1.0e-10);
+    EXPECT_NEAR(stress(0, 2), 0.0, 1.0e-14);
+    EXPECT_NEAR(stress(1, 2), 0.0, 1.0e-14);
 }

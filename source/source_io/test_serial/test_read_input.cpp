@@ -78,7 +78,8 @@ TEST_F(InputDomainReaderTest, ParsesGrandCanonicalScfControls)
     write_input("gce true\ngce_target_workfunction 3.5\n"
                 "gce_mixing_beta 0.2\ngce_wf_tol 0.002\ngce_nelec_tol 1.0e-7\n"
                 "gce_qk 2.5\ngce_qkappa 0.3\ngce_qm 0.8\n"
-                "gce_pcc_gaussian true\ngce_pcc_dist_edge 4.5\ngce_pcc_gau_c 0.12\n");
+                "gce_pcc_gaussian true\ngce_pcc_dist_edge 4.5\ngce_pcc_gau_c 0.12\n"
+                "assume_isolated pcc_2d\ncal_force 1\ncal_stress 1\n");
     ModuleIO::ReadInput reader(0);
     reader.check_ntype_flag = false;
     Parameter input;
@@ -95,6 +96,14 @@ TEST_F(InputDomainReaderTest, ParsesGrandCanonicalScfControls)
     EXPECT_TRUE(input.inp.gce_pcc_gaussian);
     EXPECT_DOUBLE_EQ(input.inp.gce_pcc_dist_edge, 4.5);
     EXPECT_DOUBLE_EQ(input.inp.gce_pcc_gau_c, 0.12);
+    EXPECT_TRUE(input.inp.cal_force);
+    EXPECT_TRUE(input.inp.cal_stress);
+}
+
+TEST_F(InputDomainReaderTest, RejectsPccStressWithoutGaussianGrandCanonicalScf)
+{
+    const std::string output = reject_input("assume_isolated pcc_2d\ncal_stress 1\n");
+    EXPECT_NE(output.find("supports cal_stress only with gce and gce_pcc_gaussian"), std::string::npos);
 }
 
 TEST_F(InputDomainReaderTest, RejectsMalformedAndOutOfDomainExplicitValues)

@@ -11,6 +11,7 @@
 
 #include <cmath>
 #include <complex>
+#include <string>
 #include <vector>
 
 namespace elecstate
@@ -69,6 +70,7 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
     if (std::abs(counter_charge) < 1.0e-14)
     {
         electron_potential_.assign(basis.nrxx, 0.0);
+        electron_density_.assign(basis.nrxx, 0.0);
         energy_rydberg_ = 0.0;
         ModuleBase::timer::end("PotPlanarCounterCharge", "cal_v_eff");
         return;
@@ -182,6 +184,14 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
 #ifdef __MPI
     Parallel_Reduce::reduce_pool(electron_cross_energy);
 #endif
+    electron_density_.assign(basis.nrxx, 0.0);
+    for (int spin = 0; spin < density_channels; ++spin)
+    {
+        for (int ir = 0; ir < basis.nrxx; ++ir)
+        {
+            electron_density_[ir] += charge->rho[spin][ir];
+        }
+    }
     for (int spin = 0; spin < potential.nr; ++spin)
     {
         for (int ir = 0; ir < basis.nrxx; ++ir)
@@ -203,6 +213,130 @@ void PotPlanarCounterCharge::add_force(const UnitCell&, ModuleBase::matrix& forc
         force(iatom, 1) -= charge * ion_gradients_[iatom].y;
         force(iatom, 2) -= charge * ion_gradients_[iatom].z;
     }
+}
+
+double PotPlanarCounterCharge::correction_energy_for_strain(
+    const UnitCell& cell,
+    const ModuleBase::Matrix3& deformation) const
+{
+    const ModuleBase::Matrix3 strained_latvec = cell.latvec * deformation;
+    const double strained_omega = std::abs(strained_latvec.Det()) * cell.lat0 * cell.lat0 * cell.lat0;
+    const int nx = rho_basis_->nx;
+    const int ny = rho_basis_->ny;
+    const int nz = rho_basis_->nz;
+    const std::string strained_device = rho_basis_->get_device();
+    const std::string strained_precision = rho_basis_->get_precision();
+    ModulePW::PW_Basis strained_basis(strained_device, strained_precision);
+#ifdef __MPI
+    strained_basis.initmpi(rho_basis_->poolnproc, rho_basis_->poolrank, rho_basis_->pool_world);
+#endif
+    strained_basis.initgrids(cell.lat0, strained_latvec, nx, ny, nz);
+    const double wavefunction_cutoff = rho_basis_->ggecut * rho_basis_->tpiba2;
+    strained_basis.initparameters(rho_basis_->gamma_only,
+                                  wavefunction_cutoff,
+                                  rho_basis_->distribution_type,
+                                  rho_basis_->xprime);
+    strained_basis.setuptransform();
+    strained_basis.collect_local_pw();
+    if (strained_basis.nrxx != rho_basis_->nrxx)
+    {
+        ModuleBase::WARNING_QUIT("PotPlanarCounterCharge::add_stress",
+                                 "Strained auxiliary FFT grid is inconsistent with the reference grid");
+    }
+
+    UnitCell strained_cell;
+    strained_cell.lat0 = cell.lat0;
+    strained_cell.latvec = strained_latvec;
+    strained_cell.omega = strained_omega;
+    strained_cell.tpiba = cell.tpiba;
+    strained_cell.tpiba2 = cell.tpiba2;
+    strained_cell.ntype = cell.ntype;
+    strained_cell.nat = cell.nat;
+    std::vector<Atom> strained_atoms(cell.ntype);
+    for (int itype = 0; itype < cell.ntype; ++itype)
+    {
+        strained_atoms[itype].na = cell.atoms[itype].na;
+        strained_atoms[itype].mass = cell.atoms[itype].mass;
+        strained_atoms[itype].ncpp.zv = cell.atoms[itype].ncpp.zv;
+        strained_atoms[itype].ncpp.psd = cell.atoms[itype].ncpp.psd;
+        strained_atoms[itype].tau.resize(cell.atoms[itype].na);
+        for (int iatom = 0; iatom < cell.atoms[itype].na; ++iatom)
+        {
+            strained_atoms[itype].tau[iatom] = cell.atoms[itype].tau[iatom] * deformation;
+        }
+    }
+    strained_cell.atoms = strained_atoms.data();
+
+    const double volume_scale = cell.omega / strained_omega;
+    std::vector<double> strained_density(electron_density_.size(), 0.0);
+    for (std::size_t ir = 0; ir < electron_density_.size(); ++ir)
+    {
+        strained_density[ir] = electron_density_[ir] * volume_scale;
+    }
+    double* density_channels[1] = {strained_density.data()};
+    Charge strained_charge;
+    strained_charge.rho = density_channels;
+    strained_charge.nspin = 1;
+    const int strained_nrxx = strained_basis.nrxx;
+    ModuleBase::matrix potential(1, strained_nrxx);
+    PotPlanarCounterCharge strained_correction(&strained_basis,
+                                               electron_count_,
+                                               open_axis_,
+                                               distance_from_edge_,
+                                               gaussian_width_);
+    strained_correction.cal_v_eff(&strained_charge, &strained_cell, potential);
+    return strained_correction.get_energy();
+}
+
+void PotPlanarCounterCharge::add_stress(const UnitCell& cell, ModuleBase::matrix& stress) const
+{
+    ModuleBase::timer::start("PotPlanarCounterCharge", "add_stress");
+    if (electron_density_.empty() || cell.omega <= 0.0)
+    {
+        ModuleBase::timer::end("PotPlanarCounterCharge", "add_stress");
+        return;
+    }
+
+    const double step = 1.0e-3;
+    const double denominator = 2.0 * step * cell.omega;
+    for (int first = 0; first < 3; ++first)
+    {
+        for (int second = first; second < 3; ++second)
+        {
+            // A shear coupling the open axis to an in-plane axis would tilt the
+            // Gaussian planes away from the lattice normal, which the periodic
+            // planar-counter-charge model cannot represent.
+            if ((first == open_axis_) != (second == open_axis_))
+            {
+                continue;
+            }
+            ModuleBase::Matrix3 plus_deformation;
+            ModuleBase::Matrix3 minus_deformation;
+            double* plus_entries[3][3] = {{&plus_deformation.e11, &plus_deformation.e12, &plus_deformation.e13},
+                                          {&plus_deformation.e21, &plus_deformation.e22, &plus_deformation.e23},
+                                          {&plus_deformation.e31, &plus_deformation.e32, &plus_deformation.e33}};
+            double* minus_entries[3][3] = {{&minus_deformation.e11, &minus_deformation.e12, &minus_deformation.e13},
+                                           {&minus_deformation.e21, &minus_deformation.e22, &minus_deformation.e23},
+                                           {&minus_deformation.e31, &minus_deformation.e32, &minus_deformation.e33}};
+            const double symmetric_factor = first == second ? 1.0 : 0.5;
+            *plus_entries[first][second] += symmetric_factor * step;
+            *minus_entries[first][second] -= symmetric_factor * step;
+            if (first != second)
+            {
+                *plus_entries[second][first] += symmetric_factor * step;
+                *minus_entries[second][first] -= symmetric_factor * step;
+            }
+            const double plus_energy = this->correction_energy_for_strain(cell, plus_deformation);
+            const double minus_energy = this->correction_energy_for_strain(cell, minus_deformation);
+            const double contribution = -(plus_energy - minus_energy) / denominator;
+            stress(first, second) += contribution;
+            if (first != second)
+            {
+                stress(second, first) += contribution;
+            }
+        }
+    }
+    ModuleBase::timer::end("PotPlanarCounterCharge", "add_stress");
 }
 
 } // namespace elecstate

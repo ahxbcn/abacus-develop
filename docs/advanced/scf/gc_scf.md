@@ -17,11 +17,10 @@ The current prototype is intentionally limited:
 - `scf_thr_type 1`
 - `assume_isolated pcc_2d`
 - `nspin 1` or `2`
-- no fixed spin difference, DFT+U, DFT-1/2, electric fields, gate fields, or
-  stress evaluation
-- forces require `gce_pcc_gaussian true`; the Gaussian counter-charge
-  contribution is included in the force, but the full constant-work-function
-  geometric response is still a prototype
+- no fixed spin difference, DFT+U, DFT-1/2, electric fields, or gate fields
+- forces and stress require `gce_pcc_gaussian true`; the Gaussian
+  counter-charge contribution is included in the analytic force and the
+  numerical stress derivative at fixed electron density
 
 The input must provide enough `nbands` for the electron-number fluctuation.
 
@@ -72,5 +71,15 @@ analytic force. The energy correction also contains the counter-charge self
 energy and its electron cross term. The electron cross term has no explicit
 ionic derivative because the Gaussian sheets are tied to the cell rather than
 to ionic coordinates. Set `cal_force 1` to evaluate SCF and ionic forces in
-this mode. Other PCC variants still reject `cal_force 1`, and every GC-SCF mode
-rejects `cal_stress 1` until the full cell-derivative terms are implemented.
+this mode. Other PCC variants still reject `cal_force 1`.
+
+Set `cal_stress 1` to add the Gaussian counter-charge stress. The stress is
+obtained from central strain derivatives of the counter-charge self energy and
+its ion and electron cross terms, with the converged electron density scaled
+for the strained cell volume. This prototype recomputes the auxiliary PW basis
+for each strain perturbation, so it is intended for validation and production
+of moderate-size slabs rather than very large cells. Shear strains that tilt
+the open lattice vector away from the slab normal are not representable by the
+planar model; their stress components are left at zero, so cell optimization
+should preserve the cell angles. Other PCC variants still reject GC stress
+because their cell derivatives are not implemented.

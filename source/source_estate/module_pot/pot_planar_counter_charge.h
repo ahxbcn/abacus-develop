@@ -25,6 +25,7 @@ class PotPlanarCounterCharge : public PotBase
 
     void cal_v_eff(const Charge* charge, const UnitCell* cell, ModuleBase::matrix& potential) override;
     void add_force(const UnitCell& cell, ModuleBase::matrix& force) const;
+    void add_stress(const UnitCell& cell, ModuleBase::matrix& stress) const;
     double get_energy() const override;
     const std::vector<double>& electron_potential() const;
     void set_electron_count(double electron_count);
@@ -35,8 +36,11 @@ class PotPlanarCounterCharge : public PotBase
     double distance_from_edge_;
     double gaussian_width_;
     std::vector<double> electron_potential_;
+    std::vector<double> electron_density_;
     std::vector<double> ion_charges_;
     std::vector<ModuleBase::Vector3<double>> ion_gradients_;
+    double correction_energy_for_strain(const UnitCell& cell,
+                                        const ModuleBase::Matrix3& deformation) const;
     double energy_rydberg_ = 0.0;
 };
 

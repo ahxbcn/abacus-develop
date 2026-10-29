@@ -434,6 +434,15 @@ void Potential::add_pcc_force(const UnitCell& cell, ModuleBase::matrix& force) c
     }
 }
 
+void Potential::add_pcc_stress(const UnitCell& cell, ModuleBase::matrix& stress) const
+{
+    const PotPlanarCounterCharge* planar = this->planar_counter_charge_component();
+    if (planar != nullptr)
+    {
+        planar->add_stress(cell, stress);
+    }
+}
+
 void Potential::set_expected_electron_count(const double electron_count)
 {
     for (std::size_t i = 0; i < this->components.size(); ++i)

@@ -4,4 +4,5 @@ target work function. The test uses two Gaussian counter-charge sheets rather
 than the multipole PCC 2D correction. It also checks the analytic
 ion-counter-charge force in the SCF force path. The work-function reference
 uses the CP2K convention: the planar average on the outer grid plane along the
-open cell direction.
+open cell direction. Stress is evaluated from central strain derivatives of
+the Gaussian counter-charge energy.

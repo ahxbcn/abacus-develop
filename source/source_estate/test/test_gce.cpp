@@ -72,7 +72,7 @@ TEST(GceOccupationTest, FixedChemicalPotentialFermiDiracWeights)
     EXPECT_TRUE(std::isfinite(demet));
 }
 
-TEST(GceInputValidationTest, ForceRequiresGaussianPlanarCounterCharge)
+TEST(GceInputValidationTest, ForceAndStressRequireGaussianPlanarCounterCharge)
 {
     Input_para input;
     input.gce = true;
@@ -89,6 +89,11 @@ TEST(GceInputValidationTest, ForceRequiresGaussianPlanarCounterCharge)
 
     EXPECT_EXIT(elecstate::validate_gce_input(input), testing::ExitedWithCode(1), "");
 
+    input.cal_force = false;
+    input.cal_stress = true;
+    EXPECT_EXIT(elecstate::validate_gce_input(input), testing::ExitedWithCode(1), "");
+
     input.gce_pcc_gaussian = true;
+    input.cal_force = true;
     elecstate::validate_gce_input(input);
 }

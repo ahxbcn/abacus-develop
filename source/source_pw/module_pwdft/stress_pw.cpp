@@ -63,6 +63,9 @@ void Stress_PW<FPTYPE, Device>::cal_stress(const int nspin,
     // EXX PW stress
     ModuleBase::matrix sigmaexx;
     sigmaexx.create(3, 3);
+    // planar counter-charge stress
+    ModuleBase::matrix sigmapcc;
+    sigmapcc.create(3, 3);
 
     for (int i = 0; i < 3; i++)
     {
@@ -79,6 +82,7 @@ void Stress_PW<FPTYPE, Device>::cal_stress(const int nspin,
             sigmavdw(i, j) = 0.0;
             sigmaonsite(i, j) = 0.0;
             sigmaexx(i, j) = 0.0;
+            sigmapcc(i, j) = 0.0;
         }
     }
 
@@ -148,6 +152,8 @@ void Stress_PW<FPTYPE, Device>::cal_stress(const int nspin,
         this->stress_exx(sigmaexx, this->pelec->wg, rho_basis, wfc_basis, p_kv, d_psi_in, ucell, exx_info);
     }
 
+    this->pelec->pot->add_pcc_stress(ucell, sigmapcc);
+
 
     for (int ipol = 0; ipol < 3; ipol++)
     {
@@ -156,7 +162,7 @@ void Stress_PW<FPTYPE, Device>::cal_stress(const int nspin,
             sigmatot(ipol, jpol) = sigmakin(ipol, jpol) + sigmahar(ipol, jpol) + sigmanl(ipol, jpol)
                                    + sigmaxc(ipol, jpol) + sigmaxcc(ipol, jpol) + sigmaewa(ipol, jpol)
                                    + sigmaloc(ipol, jpol) + sigmavdw(ipol, jpol) + sigmaonsite(ipol, jpol)
-                                   + sigmaexx(ipol, jpol);
+                                   + sigmaexx(ipol, jpol) + sigmapcc(ipol, jpol);
         }
     }
 

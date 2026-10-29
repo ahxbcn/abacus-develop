@@ -599,7 +599,10 @@ Theory: G. Makov and M. C. Payne, Phys. Rev. B 51, 4014 (1995); PCC: O. Andreuss
                 else if (inp.calculation != "scf" && inp.calculation != "relax") { error = "requires calculation scf or fixed-cell relax"; }
                 else if (inp.efield_flag) { error = "cannot be combined with efield_flag"; }
                 else if (inp.gate_flag) { error = "cannot be combined with gate_flag"; }
-                else if (inp.cal_stress) { error = "does not support cal_stress"; }
+                else if (inp.cal_stress && !(inp.gce && inp.gce_pcc_gaussian))
+                {
+                    error = "supports cal_stress only with gce and gce_pcc_gaussian";
+                }
                 else if (inp.dfthalf_type != 0) { error = "cannot be combined with dfthalf_type"; }
                 else if (inp.deepks_scf || inp.deepks_out_labels || inp.deepks_bandgap || inp.deepks_v_delta)
                 {
