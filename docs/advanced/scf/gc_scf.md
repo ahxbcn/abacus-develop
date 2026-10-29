@@ -49,10 +49,11 @@ INPUT_PARAMETERS
   gce_pcc_gau_c 0.1
 ```
 
-The prototype uses the planar-averaged electrostatic potential at the vacuum
-density minimum as the work-function reference. It reports the current work
-function, electron number, charged electron count, and the electron-reservoir
-free-energy correction in the SCF log.
+The prototype uses the planar-averaged electrostatic potential on the outer
+grid plane along the open direction as the work-function reference. This is
+the convention used by CP2K's grand-canonical SCF implementation. It reports
+the current work function, electron number, charged electron count, and the
+electron-reservoir free-energy correction in the SCF log.
 
 The PCC 2D correction supplies the charged-slab electrostatic reference. It is
 not the Gaussian planar counter-charge model used by the corresponding CP2K

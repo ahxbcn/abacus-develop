@@ -7,8 +7,6 @@
 #include "source_estate/module_pot/h_hartree_pw.h"
 #include "source_estate/module_pot/potential_new.h"
 
-#include <algorithm>
-#include <cmath>
 #include <vector>
 
 namespace elecstate
@@ -19,8 +17,7 @@ namespace
 
 std::vector<double> average_along_axis(const ModulePW::PW_Basis& basis,
                                        const std::vector<double>& values,
-                                       const int axis,
-                                       const bool absolute)
+                                       const int axis)
 {
     if (axis < 0 || axis > 2)
     {
@@ -58,8 +55,7 @@ std::vector<double> average_along_axis(const ModulePW::PW_Basis& basis,
         {
             return std::vector<double>();
         }
-        const double value = absolute ? std::abs(values[ir]) : values[ir];
-        average[index] += value;
+        average[index] += values[ir];
     }
 
 #ifdef __MPI
@@ -91,15 +87,6 @@ double electrostatic_vacuum_reference(const Charge& charge,
         return 0.0;
     }
 
-    std::vector<double> density(basis->nrxx, 0.0);
-    for (int is = 0; is < charge.nspin; ++is)
-    {
-        for (int ir = 0; ir < basis->nrxx; ++ir)
-        {
-            density[ir] += charge.rho[is][ir];
-        }
-    }
-
     const ModuleBase::matrix hartree = H_Hartree_pw::v_hartree(
         cell, const_cast<ModulePW::PW_Basis*>(basis), charge.nspin, charge.rho);
     const double* fixed_potential = potential.get_fixed_v();
@@ -117,32 +104,14 @@ double electrostatic_vacuum_reference(const Charge& charge,
         electrostatic[ir] = fixed_potential[ir] + hartree(0, ir) + (*pcc_potential)[ir] + solvent_value;
     }
 
-    const std::vector<double> density_profile = average_along_axis(*basis, density, axis, true);
-    const std::vector<double> potential_profile = average_along_axis(*basis, electrostatic, axis, false);
-    if (density_profile.empty() || density_profile.size() != potential_profile.size())
+    const std::vector<double> potential_profile = average_along_axis(*basis, electrostatic, axis);
+    if (potential_profile.empty())
     {
         return 0.0;
     }
 
-    const int length = static_cast<int>(density_profile.size());
-    const double windows[7] = {0.1, 0.2, 0.3, 0.4, 0.3, 0.2, 0.1};
-    double minimum = 1.0e100;
-    int minimum_index = 0;
-    for (int i = 0; i < length; ++i)
-    {
-        double smoothed = 0.0;
-        for (int win = 0; win < 7; ++win)
-        {
-            const int index = (i - 3 + win + length) % length;
-            smoothed += windows[win] * density_profile[index];
-        }
-        if (smoothed < minimum)
-        {
-            minimum = smoothed;
-            minimum_index = i;
-        }
-    }
-    return potential_profile[minimum_index];
+    const int length = static_cast<int>(potential_profile.size());
+    return potential_profile[length - 1];
 }
 
 } // namespace elecstate
