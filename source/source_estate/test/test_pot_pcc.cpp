@@ -284,6 +284,22 @@ TEST_F(PotPlanarCounterChargeTest, ChargedSlabProducesFiniteSpinIndependentPoten
         EXPECT_NEAR(doubled.electron_potential()[ir], 2.0 * potential_one[ir], 1.0e-12);
     }
 
+    ModuleBase::matrix force(1, 3);
+    correction.add_force(cell, force);
+    const double step_bohr = 1.0e-4;
+    const double step_lat0 = step_bohr / cell.lat0;
+    atom.tau[0].x += step_lat0;
+    ModuleBase::matrix plus_potential(1, basis.nrxx);
+    correction.cal_v_eff(&charge, &cell, plus_potential);
+    const double plus_energy = correction.get_energy();
+    atom.tau[0].x -= 2.0 * step_lat0;
+    ModuleBase::matrix minus_potential(1, basis.nrxx);
+    correction.cal_v_eff(&charge, &cell, minus_potential);
+    const double minus_energy = correction.get_energy();
+    atom.tau[0].x += step_lat0;
+    const double numerical_force = -(plus_energy - minus_energy) / (2.0 * step_bohr);
+    EXPECT_NEAR(force(0, 0), numerical_force, 1.0e-10);
+
     correction.set_electron_count(1.0);
     potential.zero_out();
     correction.cal_v_eff(&charge, &cell, potential);

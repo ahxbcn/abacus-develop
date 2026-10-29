@@ -156,13 +156,15 @@ void validate_gce_input(const Input_para& input)
         ModuleBase::WARNING_QUIT("validate_gce_input",
                                  "GC-SCF prototype requires explicit nbands with empty states");
     }
+    const bool unsupported_force = input.cal_force && !input.gce_pcc_gaussian;
     if (input.nupdown != 0.0 || input.dft_plus_u || input.dfthalf_type != 0 || input.ocp
-        || input.efield_flag || input.gate_flag || input.imp_sol == 1 || input.cal_force
+        || input.efield_flag || input.gate_flag || input.imp_sol == 1 || unsupported_force
         || input.cal_stress)
     {
         ModuleBase::WARNING_QUIT("validate_gce_input",
                                  "GC-SCF prototype does not support fixed spin difference, DFT+U, "
-                                 "DFT-1/2, fixed occupations, electric/gate fields, forces/stress, or imp_sol=1");
+                                 "DFT-1/2, fixed occupations, electric/gate fields, stress, "
+                                 "or forces without Gaussian PCC");
     }
 }
 

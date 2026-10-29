@@ -56,16 +56,15 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
         ModuleBase::WARNING_QUIT("PotPlanarCounterCharge",
                                  "Planar counter charge requires a perpendicular open lattice vector");
     }
-    std::vector<double> masses;
-    std::vector<ModuleBase::Vector3<double>> atom_positions;
     double ionic_charge = 0.0;
+    ion_charges_.clear();
+    ion_gradients_.clear();
     for (const unitcell::AtomData& atom : atoms)
     {
-        atom_positions.push_back(atom.position);
-        masses.push_back(atom.mass);
         ionic_charge += atom.valence_charge;
+        ion_charges_.push_back(atom.valence_charge);
+        ion_gradients_.push_back(ModuleBase::Vector3<double>(0.0, 0.0, 0.0));
     }
-    slab.origin = unitcell::weighted_center(atom_positions, masses, slab);
     const double counter_charge = electron_count_ - ionic_charge;
     if (std::abs(counter_charge) < 1.0e-14)
     {
@@ -138,15 +137,34 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
         {
             continue;
         }
-        for (const unitcell::AtomData& atom : atoms)
+        for (std::size_t iatom = 0; iatom < atoms.size(); ++iatom)
         {
+            const unitcell::AtomData& atom = atoms[iatom];
             const double phase = basis.gcar[ig] * atom.position;
-            ion_cross_energy += atom.valence_charge
-                                * (potential_g[ig] * std::complex<double>(std::cos(phase), std::sin(phase))).real();
+            const std::complex<double> phase_factor(std::cos(phase), std::sin(phase));
+            const std::complex<double> value = potential_g[ig] * phase_factor;
+            ion_cross_energy += atom.valence_charge * value.real();
+            ion_gradients_[iatom] -= basis.gcar[ig] * value.imag();
         }
     }
 #ifdef __MPI
     Parallel_Reduce::reduce_pool(ion_cross_energy);
+    if (!ion_gradients_.empty())
+    {
+        std::vector<double> gradient_buffer(ion_gradients_.size() * 3, 0.0);
+        for (std::size_t iatom = 0; iatom < ion_gradients_.size(); ++iatom)
+        {
+            gradient_buffer[3 * iatom] = ion_gradients_[iatom].x;
+            gradient_buffer[3 * iatom + 1] = ion_gradients_[iatom].y;
+            gradient_buffer[3 * iatom + 2] = ion_gradients_[iatom].z;
+        }
+        Parallel_Reduce::reduce_pool(gradient_buffer.data(), static_cast<int>(gradient_buffer.size()));
+        for (std::size_t iatom = 0; iatom < ion_gradients_.size(); ++iatom)
+        {
+            ion_gradients_[iatom] = ModuleBase::Vector3<double>(
+                gradient_buffer[3 * iatom], gradient_buffer[3 * iatom + 1], gradient_buffer[3 * iatom + 2]);
+        }
+    }
 #endif
 
     electron_potential_.assign(basis.nrxx, 0.0);
@@ -160,6 +178,18 @@ void PotPlanarCounterCharge::cal_v_eff(const Charge* charge, const UnitCell* cel
     }
     energy_rydberg_ = self_energy + ion_cross_energy;
     ModuleBase::timer::end("PotPlanarCounterCharge", "cal_v_eff");
+}
+
+void PotPlanarCounterCharge::add_force(const UnitCell&, ModuleBase::matrix& force) const
+{
+    const int atom_count = static_cast<int>(ion_charges_.size());
+    for (int iatom = 0; iatom < atom_count; ++iatom)
+    {
+        const double charge = ion_charges_[iatom];
+        force(iatom, 0) -= charge * ion_gradients_[iatom].x;
+        force(iatom, 1) -= charge * ion_gradients_[iatom].y;
+        force(iatom, 2) -= charge * ion_gradients_[iatom].z;
+    }
 }
 
 } // namespace elecstate

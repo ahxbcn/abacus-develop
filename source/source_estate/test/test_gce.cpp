@@ -2,6 +2,7 @@
 
 #include "source_estate/gce.h"
 #include "source_estate/occupy.h"
+#include "source_io/module_parameter/input_parameter.h"
 
 #include <cmath>
 #include <vector>
@@ -69,4 +70,25 @@ TEST(GceOccupationTest, FixedChemicalPotentialFermiDiracWeights)
     EXPECT_NEAR(wg(0, 1), 0.0133857018485697, 1.0e-14);
     EXPECT_NEAR(nelec, 2.0, 1.0e-14);
     EXPECT_TRUE(std::isfinite(demet));
+}
+
+TEST(GceInputValidationTest, ForceRequiresGaussianPlanarCounterCharge)
+{
+    Input_para input;
+    input.gce = true;
+    input.basis_type = "pw";
+    input.esolver_type = "ksdft";
+    input.calculation = "scf";
+    input.nspin = 1;
+    input.smearing_method = "fd";
+    input.assume_isolated = "pcc_2d";
+    input.scf_thr_type = 1;
+    input.nelec = 2.0;
+    input.nbands = 4;
+    input.cal_force = true;
+
+    EXPECT_EXIT(elecstate::validate_gce_input(input), testing::ExitedWithCode(1), "");
+
+    input.gce_pcc_gaussian = true;
+    elecstate::validate_gce_input(input);
 }

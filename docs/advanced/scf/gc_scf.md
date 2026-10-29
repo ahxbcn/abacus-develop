@@ -18,7 +18,10 @@ The current prototype is intentionally limited:
 - `assume_isolated pcc_2d`
 - `nspin 1` or `2`
 - no fixed spin difference, DFT+U, DFT-1/2, electric fields, gate fields, or
-  force/stress evaluation
+  stress evaluation
+- forces require `gce_pcc_gaussian true`; the Gaussian counter-charge
+  contribution is included in the force, but the full constant-work-function
+  geometric response is still a prototype
 
 The input must provide enough `nbands` for the electron-number fluctuation.
 
@@ -62,3 +65,11 @@ With `gce_pcc_gaussian true`, the existing PCC 2D multipole correction is
 replaced by two Gaussian counter-charge sheets. `gce_pcc_dist_edge` sets their
 distance from the cell boundary and `gce_pcc_gau_c` sets their Gaussian width,
 both in angstrom.
+
+For this Gaussian model the ion-counter-charge cross energy contributes an
+analytic force. The electron-counter-charge cross term is already represented
+by the band energy, and its explicit derivative vanishes because the Gaussian
+sheets are tied to the cell rather than to ionic coordinates. Set `cal_force 1`
+to evaluate SCF and ionic forces in this mode. Other PCC variants still reject
+`cal_force 1`, and every GC-SCF mode rejects `cal_stress 1` until the full
+cell-derivative terms are implemented.

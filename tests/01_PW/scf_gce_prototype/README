@@ -1,4 +1,5 @@
 PW grand-canonical SCF prototype on a six-atom Li slab with PCC 2D and
 Fermi-Dirac smearing. The electron count is allowed to relax toward a fixed
 target work function. The test uses two Gaussian counter-charge sheets rather
-than the multipole PCC 2D correction.
+than the multipole PCC 2D correction. It also checks the analytic
+ion-counter-charge force in the SCF force path.

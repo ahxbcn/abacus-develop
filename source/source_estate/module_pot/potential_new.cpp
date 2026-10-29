@@ -421,6 +421,12 @@ const std::vector<double>* Potential::pcc_electron_potential() const
 
 void Potential::add_pcc_force(const UnitCell& cell, ModuleBase::matrix& force) const
 {
+    const PotPlanarCounterCharge* planar = this->planar_counter_charge_component();
+    if (planar != nullptr)
+    {
+        planar->add_force(cell, force);
+        return;
+    }
     const PotPcc* pcc = this->pcc_component();
     if (pcc != nullptr)
     {
