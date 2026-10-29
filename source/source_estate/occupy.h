@@ -111,6 +111,22 @@ public:
                          const int& is,
                          const std::vector<int>& isk);
 
+    /// @brief Fill smeared occupations at a prescribed chemical potential.
+    /// @return Local contribution to the electron count and -TS term. Callers
+    ///         performing band or k-point parallelism must reduce both values.
+    static void fweights(const int nks,
+                         const std::vector<double>& wk,
+                         const int nband,
+                         const double& mu,
+                         const double& smearing_sigma,
+                         const int ngauss,
+                         const ModuleBase::matrix& ekb,
+                         ModuleBase::matrix& wg,
+                         const int& is,
+                         const std::vector<int>& isk,
+                         double& nelec,
+                         double& demet);
+
     static void tweights(const int nks,const int nspin,const int nband,
 						const double &nelec,const int ntetra,
                          const ModuleBase::matrix &tetra,double **ekb,double &ef,ModuleBase::matrix &wg);

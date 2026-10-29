@@ -14,6 +14,12 @@ AddTest(
 )
 
 AddTest(
+  TARGET MODULE_ESTATE_gce
+  LIBS parameter base device
+  SOURCES test_gce.cpp ../gce.cpp ../occupy.cpp
+)
+
+AddTest(
   TARGET MODULE_ESTATE_pcc_0d
   LIBS base device
   SOURCES test_pcc_0d.cpp ../pcc_0d.cpp ../charge_moments.cpp ../../source_cell/cell_geometry.cpp

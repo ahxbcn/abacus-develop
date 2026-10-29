@@ -244,6 +244,73 @@ Then the user has to correct the input file and restart the calculation.)";
         this->add_item(item);
     }
     {
+        Input_Item item("gce");
+        item.annotation = "enable grand-canonical SCF at fixed work function";
+        item.category = "Electronic structure";
+        item.type = "Boolean";
+        item.description = R"(Enables the plane-wave grand-canonical SCF prototype. The electron
+number is allowed to change while the work function is mixed toward gce_target_workfunction.
+The prototype requires basis_type=pw, esolver_type=ksdft, smearing_method=fd, nspin=1 or 2,
+scf_thr_type=1, and assume_isolated=pcc_2d. It is intended for three-dimensional periodic slab
+calculations and uses the planar-averaged electrostatic potential in the vacuum region as the
+work-function reference.)";
+        item.default_value = "false";
+        item.unit = "";
+        read_sync_bool(input.gce);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_target_workfunction");
+        item.annotation = "target work function for grand-canonical SCF";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "Target work function in eV for the plane-wave grand-canonical SCF prototype.";
+        item.default_value = "0.0";
+        item.unit = "eV";
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_target_workfunction);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_mixing_beta");
+        item.annotation = "work-function mixing coefficient";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "Fraction of the target work function mixed into each grand-canonical SCF update.";
+        item.default_value = "0.3";
+        item.unit = "";
+        item.domain.set_rule("value>0 and value<=1");
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_mixing_beta);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_wf_tol");
+        item.annotation = "work-function convergence tolerance";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "Convergence tolerance in eV for the difference between the current and target work functions.";
+        item.default_value = "1.0e-4";
+        item.unit = "eV";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_wf_tol);
+        this->add_item(item);
+    }
+    {
+        Input_Item item("gce_nelec_tol");
+        item.annotation = "electron-number convergence tolerance";
+        item.category = "Electronic structure";
+        item.type = "Real";
+        item.description = "Convergence tolerance for the change of the grand-canonical electron number between SCF iterations.";
+        item.default_value = "1.0e-6";
+        item.unit = "";
+        item.domain.set_rule("value>0");
+        item.set_availability("gce==true");
+        read_sync_double(input.gce_nelec_tol);
+        this->add_item(item);
+    }
+    {
         Input_Item item("nupdown");
         item.domain.add_requirement("nspin==1", "nupdown==0");
         item.annotation = "the difference number of electrons between spin-up "

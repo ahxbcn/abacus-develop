@@ -294,6 +294,43 @@ void Occupy::gweights(const int nks,
     return;
 } // end subroutine gweights
 
+void Occupy::fweights(const int nks,
+                      const std::vector<double>& wk,
+                      const int nband,
+                      const double& mu,
+                      const double& smearing_sigma,
+                      const int ngauss,
+                      const ModuleBase::matrix& ekb,
+                      ModuleBase::matrix& wg,
+                      const int& is,
+                      const std::vector<int>& isk,
+                      double& nelec,
+                      double& demet)
+{
+    if (!(smearing_sigma > 0.0) || !std::isfinite(smearing_sigma) || !std::isfinite(mu))
+    {
+        ModuleBase::WARNING_QUIT("Occupy::fweights", "Invalid smearing width or chemical potential");
+    }
+
+    nelec = 0.0;
+    demet = 0.0;
+    for (int ik = 0; ik < nks; ++ik)
+    {
+        if (is != -1 && is != isk[ik])
+        {
+            continue;
+        }
+        for (int ib = 0; ib < nband; ++ib)
+        {
+            const double argument = (mu - ekb(ik, ib)) / smearing_sigma;
+            const double occupation = wk[ik] * occupy_smearing::wgauss(argument, ngauss);
+            wg(ik, ib) = occupation;
+            nelec += occupation;
+            demet += wk[ik] * smearing_sigma * occupy_smearing::w1gauss(argument, ngauss);
+        }
+    }
+}
+
 /**
  * @brief Finds the Fermi energy in a centered coordinate
  *

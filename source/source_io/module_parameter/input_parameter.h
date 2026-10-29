@@ -85,6 +85,11 @@ struct Input_para
     int nbands = 0;                    ///< number of bands
     double nelec = 0.0;                ///< total number of electrons
     double nelec_delta = 0.0;          ///< change in the number of total electrons
+    bool gce = false;                  ///< grand-canonical SCF at fixed work function
+    double gce_target_workfunction = 0.0; ///< target work function in eV
+    double gce_mixing_beta = 0.3;      ///< work-function mixing coefficient
+    double gce_wf_tol = 1.0e-4;        ///< work-function convergence threshold in eV
+    double gce_nelec_tol = 1.0e-6;     ///< electron-number convergence threshold
     double nupdown = 0.0;
     std::string dft_functional = "default"; ///< input DFT functional.
     int gga_grad = 0; ///< Noncollinear GGA: 0 original, 1 local axis, 2 regularized mapped-density LCA.
