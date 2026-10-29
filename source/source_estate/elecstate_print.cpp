@@ -1,4 +1,5 @@
 #include "elecstate.h"
+#include "gce.h"
 #include "occupy.h"
 #include "source_base/formatter.h"
 #include "source_base/global_variable.h"
@@ -177,6 +178,7 @@ void print_etot(const Magnetism& magnet,
                 const double& duration,
                 const Input_para& inp,
                 const bool two_fermi,
+                const GceState* gce,
                 const double& pw_diag_thr,
                 const double& avg_iter,
                 const bool print,
@@ -187,14 +189,26 @@ void print_etot(const Magnetism& magnet,
     const int nrxx = elec.charge->nrxx;
     const int nxyz = elec.charge->nxyz;
 
-    GlobalV::ofs_running << std::setprecision(6);
-    GlobalV::ofs_running << std::setiosflags(std::ios::right);
+    std::ofstream& running_log = GlobalV::ofs_running;
+    running_log << std::setprecision(6);
+    running_log << std::setiosflags(std::ios::right);
 
     ModuleBase::GlobalFunc::OUT(GlobalV::ofs_running, "Electron density deviation", scf_thr);
 
     if (inp.basis_type == "pw")
     {
         ModuleBase::GlobalFunc::OUT(GlobalV::ofs_running, "Diago Threshold", pw_diag_thr);
+    }
+
+    if (gce != nullptr)
+    {
+        const double excess_electron_count = gce->reference_electron_count() - gce->electron_count();
+        running_log << " GCE work function = " << gce->workfunction() * ModuleBase::Ry_to_eV
+                    << " eV, target = " << inp.gce_target_workfunction
+                    << " eV, electrons = " << gce->electron_count()
+                    << ", charged electrons = " << excess_electron_count
+                    << ", free-energy correction = "
+                    << gce->free_energy_correction() * ModuleBase::Ry_to_eV << " eV" << std::endl;
     }
 
     std::vector<std::string> titles;

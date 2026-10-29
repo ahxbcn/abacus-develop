@@ -5,6 +5,8 @@
 
 namespace elecstate
 {
+    class GceState;
+
     void print_format(const std::string& name, 
                     const double& value);
     
@@ -21,6 +23,7 @@ namespace elecstate
                     const double& duration,
                     const Input_para& inp,
                     const bool two_fermi,
+                    const GceState* gce,
                     const double& pw_diag_thr = 0,
                     const double& avg_iter = 0,
                     bool print = true,

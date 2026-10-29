@@ -5,6 +5,8 @@
 
 namespace elecstate
 {
+class GceState;
+
 void calEBand(const ModuleBase::matrix& ekb, const ModuleBase::matrix& wg, fenergy& f_en);
 
 void calculate_weights(const ModuleBase::matrix& ekb,
@@ -14,7 +16,8 @@ void calculate_weights(const ModuleBase::matrix& ekb,
                        fenergy& f_en,
                        std::vector<double>& nelec_spin,
                        const int global_nbands,
-                       const bool skip_weights);
+                       const bool skip_weights,
+                       GceState* gce);
 
 void fixed_weights(const std::vector<double>& ocp_kb,
                    const int& nbands,

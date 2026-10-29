@@ -49,7 +49,8 @@ MixingConfig make_cfg()
         false,      // gamma_only_pw
         false,      // domag
         false,      // domag_z
-        100         // scf_nmax
+        100,        // scf_nmax
+        false       // gc_mixing
     };
     return cfg;
 }

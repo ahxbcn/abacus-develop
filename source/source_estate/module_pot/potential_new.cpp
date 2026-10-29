@@ -1,5 +1,6 @@
 #include "potential_new.h"
 #include "pot_pcc.h"
+#include "pot_sccs.h"
 
 #include "pot_ml_exx.h"
 #include "source_base/global_function.h"
@@ -400,6 +401,22 @@ void Potential::add_pcc_force(const UnitCell& cell, ModuleBase::matrix& force) c
     if (pcc != nullptr)
     {
         pcc->add_force(cell, force);
+    }
+}
+
+void Potential::set_expected_electron_count(const double electron_count)
+{
+    for (std::size_t i = 0; i < this->components.size(); ++i)
+    {
+        if (auto* pcc = dynamic_cast<PotPcc*>(this->components[i]))
+        {
+            pcc->set_electron_count(electron_count);
+            pcc->set_charge_check_enabled(false);
+        }
+        if (auto* sccs = dynamic_cast<PotSccs*>(this->components[i]))
+        {
+            sccs->set_electron_count(electron_count);
+        }
     }
 }
 

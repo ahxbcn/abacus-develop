@@ -49,7 +49,8 @@ MixingConfig make_cfg(int nspin)
         false,    // gamma_only_pw
         false,    // domag
         false,    // domag_z
-        100       // scf_nmax
+        100,      // scf_nmax
+        false     // gc_mixing
     };
     return cfg;
 }
@@ -118,6 +119,22 @@ TEST_F(ChgDrhoInnerTest, InnerProductRecipHartreeNspin1SingleG)
     const double ref = fac * overlap / gg * omega * 0.5;
 
     EXPECT_NEAR(inner, ref, 1e-8);
+}
+
+TEST_F(ChgDrhoInnerTest, GrandCanonicalMetricIncludesGZero)
+{
+    MixingConfig cfg = make_cfg(1);
+    cfg.gc_mixing = true;
+    cfg.mixing_gg0 = 2.0;
+    std::vector<std::complex<double>> rhog1(pw_basis.npw, std::complex<double>(0.0, 0.0));
+    std::vector<std::complex<double>> rhog2(pw_basis.npw, std::complex<double>(0.0, 0.0));
+    rhog1[pw_basis.ig_gge0] = std::complex<double>(3.0, 0.0);
+    rhog2[pw_basis.ig_gge0] = std::complex<double>(4.0, 0.0);
+
+    const double inner = module_charge::inner_product_recip_hartree(
+        rhog1.data(), rhog2.data(), pw_basis, cfg, 1.0, 1.0);
+    const double fac = ModuleBase::e2 * ModuleBase::FOUR_PI;
+    EXPECT_NEAR(inner, fac * 12.0 / (cfg.mixing_gg0 * cfg.mixing_gg0) * 0.5, 1e-8);
 }
 
 TEST_F(ChgDrhoInnerTest, InnerProductRecipRhoNspin1ZeroInput)

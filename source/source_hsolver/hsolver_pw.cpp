@@ -70,7 +70,8 @@ void HSolverPW<T, Device>::solve(HSOperator<T, Device>& op,
                                  const int rank_in_pool_in,
                                  const int nproc_in_pool_in,
                                  std::ostream& log,
-                                 const bool skip_charge)
+               const bool skip_charge,
+               elecstate::GceState* gce)
 {
     ModuleBase::TITLE("HSolverPW", "solve");
     ModuleBase::timer::start("HSolverPW", "solve");
@@ -204,7 +205,8 @@ void HSolverPW<T, Device>::solve(HSOperator<T, Device>& op,
                                  _pes_pw->f_en,
                                  _pes_pw->nelec_spin,
                                  this->nbands,
-                                 _pes_pw->skip_weights);
+                                 _pes_pw->skip_weights,
+                                 gce);
 
     elecstate::calEBand(_pes_pw->ekb,_pes_pw->wg,_pes_pw->f_en);
     if (skip_charge)

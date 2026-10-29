@@ -249,7 +249,8 @@ void ESolver_KS_PW_TDDFT<T, Device>::hamilt2rho_single(UnitCell& ucell, const in
                                              this->pelec->f_en,
                                              this->pelec->nelec_spin,
                                              this->inp_->nbands,
-                                             this->pelec->skip_weights);
+                                             this->pelec->skip_weights,
+                                             nullptr);
                 elecstate::calEBand(this->pelec->ekb, this->pelec->wg, this->pelec->f_en);
                 elecstate::ElecStatePW<T, Device>* estate = static_cast<elecstate::ElecStatePW<T, Device>*>(this->pelec);
                 estate->psiToRho(*current);

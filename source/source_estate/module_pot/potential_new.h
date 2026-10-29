@@ -226,6 +226,7 @@ class Potential : public PotBase
     double pcc_energy_rydberg() const;
     const std::vector<double>* pcc_electron_potential() const;
     void add_pcc_force(const UnitCell& cell, ModuleBase::matrix& force) const;
+    void set_expected_electron_count(double electron_count);
 
   private:
     void cal_v_eff(const Charge* const chg, const UnitCell* const ucell, ModuleBase::matrix& v_eff) override;

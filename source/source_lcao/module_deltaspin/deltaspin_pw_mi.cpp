@@ -385,7 +385,8 @@ void update_psi_charge_pw_cpu(ScState& state,
                              GlobalV::RANK_IN_POOL,
                              GlobalV::NPROC_IN_POOL,
                              GlobalV::ofs_running,
-                             false);
+                             false,
+                             nullptr);
     }
     else
     {
@@ -397,7 +398,8 @@ void update_psi_charge_pw_cpu(ScState& state,
                                      pelec->f_en,
                                      pelec->nelec_spin,
                                      PARAM.inp.nbands,
-                                     pelec->skip_weights);
+                                     pelec->skip_weights,
+                                     nullptr);
         elecstate::calEBand(pelec->ekb, pelec->wg, pelec->f_en);
         reinterpret_cast<elecstate::ElecStatePW<std::complex<double>, base_device::DEVICE_CPU>*>(pelec)->psiToRho(*psi_t);
     }
@@ -498,7 +500,8 @@ void update_psi_charge_pw_gpu(ScState& state,
                              GlobalV::RANK_IN_POOL,
                              GlobalV::NPROC_IN_POOL,
                              GlobalV::ofs_running,
-                             false);
+                             false,
+                             nullptr);
     }
     else
     {
@@ -509,7 +512,8 @@ void update_psi_charge_pw_gpu(ScState& state,
                                      pelec->f_en,
                                      pelec->nelec_spin,
                                      PARAM.inp.nbands,
-                                     pelec->skip_weights);
+                                     pelec->skip_weights,
+                                     nullptr);
         elecstate::calEBand(pelec->ekb, pelec->wg, pelec->f_en);
         reinterpret_cast<elecstate::ElecStatePW<std::complex<double>, base_device::DEVICE_GPU>*>(pelec)->psiToRho(*psi_t);
     }

@@ -11,6 +11,11 @@
 
 class TestHSolverPW; // unit-test fixture, see source_hsolver/test/
 
+namespace elecstate
+{
+class GceState;
+}
+
 namespace hsolver
 {
 
@@ -66,7 +71,8 @@ class HSolverPW
                const int rank_in_pool_in,
                const int nproc_in_pool_in,
                std::ostream& log,
-               const bool skip_charge);
+               const bool skip_charge,
+               elecstate::GceState* gce);
 
   protected:
     // diago caller

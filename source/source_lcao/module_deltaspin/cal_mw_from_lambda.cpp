@@ -287,7 +287,8 @@ void spinconstrain::SpinConstrain<std::complex<double>>::cal_mw_from_lambda(
                                          this->pelec->f_en,
                                          this->pelec->nelec_spin,
                                          PARAM.inp.nbands,
-                                         this->pelec->skip_weights);
+                                         this->pelec->skip_weights,
+                                         nullptr);
             // Calculate Mi from becp coefficients for each k-point
             for (int ik = 0; ik < nk; ik++)
             {

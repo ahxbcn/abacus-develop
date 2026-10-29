@@ -146,7 +146,7 @@ TEST_F(ElecStatePrintTest, PrintEtot)
     {
         inp.vdw_method = vdw_methods[i];
         elecstate::print_etot(ucell.magnet,elecstate, converged, iter, scf_thr,
-        scf_thr_kin, duration, inp, two_fermi, pw_diag_thr, avg_iter, false);
+        scf_thr_kin, duration, inp, two_fermi, nullptr, pw_diag_thr, avg_iter, false);
     }
 
     // iteration of different ks_solver
@@ -157,7 +157,7 @@ TEST_F(ElecStatePrintTest, PrintEtot)
         testing::internal::CaptureStdout();
 
         elecstate::print_etot(ucell.magnet,elecstate,converged, iter, scf_thr,
-        scf_thr_kin, duration, inp, two_fermi, pw_diag_thr, avg_iter, print);
+        scf_thr_kin, duration, inp, two_fermi, nullptr, pw_diag_thr, avg_iter, print);
 
         output = testing::internal::GetCapturedStdout();
         if (inp.ks_solver == "cg")
@@ -225,7 +225,7 @@ TEST_F(ElecStatePrintTest, PrintEtotColorS2)
     GlobalV::MY_RANK = 0;
 
     elecstate::print_etot(ucell.magnet,elecstate,converged, iter, scf_thr,
-    scf_thr_kin, duration, inp, two_fermi, pw_diag_thr, avg_iter, print);
+    scf_thr_kin, duration, inp, two_fermi, nullptr, pw_diag_thr, avg_iter, print);
 
     delete elecstate.charge;
 }
@@ -255,7 +255,7 @@ TEST_F(ElecStatePrintTest, PrintEtotColorS4)
     GlobalV::MY_RANK = 0;
 
     elecstate::print_etot(ucell.magnet,elecstate, converged, iter, scf_thr, scf_thr_kin,
-    duration, inp, two_fermi, pw_diag_thr, avg_iter, print);
+    duration, inp, two_fermi, nullptr, pw_diag_thr, avg_iter, print);
 
     delete elecstate.charge;
 }
@@ -284,7 +284,7 @@ TEST_F(ElecStatePrintTest, PrintEtotSDFTPure)
 
     testing::internal::CaptureStdout();
     elecstate::print_etot(ucell.magnet, elecstate, converged, iter, scf_thr,
-                          scf_thr_kin, duration, inp, two_fermi, pw_diag_thr, avg_iter, print);
+                          scf_thr_kin, duration, inp, two_fermi, nullptr, pw_diag_thr, avg_iter, print);
     output = testing::internal::GetCapturedStdout();
     EXPECT_THAT(output, testing::HasSubstr("CT"));
 
@@ -315,7 +315,7 @@ TEST_F(ElecStatePrintTest, PrintEtotSDFTMixed)
 
     testing::internal::CaptureStdout();
     elecstate::print_etot(ucell.magnet, elecstate, converged, iter, scf_thr,
-                          scf_thr_kin, duration, inp, two_fermi, pw_diag_thr, avg_iter, print);
+                          scf_thr_kin, duration, inp, two_fermi, nullptr, pw_diag_thr, avg_iter, print);
     output = testing::internal::GetCapturedStdout();
     EXPECT_THAT(output, testing::HasSubstr("DA"));
 

@@ -57,7 +57,8 @@ MixingConfig make_cfg(int nspin, int scf_thr_type, bool double_grid, bool mixing
         false,         // gamma_only_pw
         false,         // domag
         false,         // domag_z
-        100            // scf_nmax
+        100,           // scf_nmax
+        false          // gc_mixing
     };
     return cfg;
 }

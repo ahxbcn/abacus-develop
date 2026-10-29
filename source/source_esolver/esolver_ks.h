@@ -13,6 +13,11 @@
 
 #include <memory> // std::unique_ptr for dftu_ member
 
+namespace elecstate
+{
+class GceState;
+}
+
 namespace ModuleESolver
 {
 
@@ -82,6 +87,9 @@ class ESolver_KS : public ESolver_FP
     //! DFT+U method (PW and LCAO both news Plus_U_Base).
     //! Owned by ESolver_KS via unique_ptr; released automatically in ~ESolver_KS.
     std::unique_ptr<Plus_U_Base> dftu_;
+
+    //! Runtime state for the PW grand-canonical SCF prototype.
+    std::unique_ptr<elecstate::GceState> gce_state;
 
     std::string basisname;          //! esolver_ks_lcao.cpp
     double esolver_KS_ne = 0.0;     //! number of electrons

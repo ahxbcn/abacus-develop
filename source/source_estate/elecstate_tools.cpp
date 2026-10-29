@@ -1,5 +1,6 @@
 #include "elecstate_tools.h"
 
+#include "gce.h"
 #include "occupy.h"
 #include "source_base/module_parallel/para_band_output.h"
 #include "source_base/module_parallel/para_bridge.h"
@@ -41,7 +42,8 @@ void calculate_weights(const ModuleBase::matrix& ekb,
                        fenergy& f_en,
                        std::vector<double>& nelec_spin,
                        const int global_nbands,
-                       const bool skip_weights)
+                       const bool skip_weights,
+                       GceState* gce)
 {
     ModuleBase::TITLE("ElecState", "calculate_weights");
     // Preserve occupations supplied through ocp_set instead of recomputing them.
@@ -50,6 +52,54 @@ void calculate_weights(const ModuleBase::matrix& ekb,
 
     const int nbands = ekb.nc;
     const int nks = ekb.nr;
+#ifdef __MPI
+    const int npool = GlobalV::KPAR * PARAM.inp.bndpar;
+    const int nproc_in_pool = GlobalV::NPROC_IN_POOL;
+#endif
+    if (gce != nullptr && gce->enabled() && gce->has_workfunction())
+    {
+        if (Occupy::gaussian_type != -99)
+        {
+            ModuleBase::WARNING_QUIT("calculate_weights",
+                                     "Grand-canonical SCF requires Fermi-Dirac smearing");
+        }
+        const double mu = gce->fermi_level();
+        f_en.demet = 0.0;
+        double total_electron_count = 0.0;
+        const int nspin = static_cast<int>(nelec_spin.size());
+        for (int ispin = 0; ispin < nspin; ++ispin)
+        {
+            const int spin_selector = nspin == 2 ? ispin : -1;
+            double spin_electron_count = 0.0;
+            double spin_demet = 0.0;
+            Occupy::fweights(nks,
+                             klist->wk,
+                             nbands,
+                             mu,
+                             Occupy::gaussian_parameter,
+                             Occupy::gaussian_type,
+                             ekb,
+                             wg,
+                             spin_selector,
+                             klist->isk,
+                             spin_electron_count,
+                             spin_demet);
+#ifdef __MPI
+            Parallel_Reduce::reduce_double_allpool(npool, nproc_in_pool, spin_electron_count);
+            Parallel_Reduce::reduce_double_allpool(npool, nproc_in_pool, spin_demet);
+#endif
+            nelec_spin[ispin] = spin_electron_count;
+            total_electron_count += spin_electron_count;
+            f_en.demet += spin_demet;
+            if (nspin == 2)
+            {
+                eferm.set_efval(ispin, mu);
+            }
+        }
+        eferm.ef = mu;
+        gce->update_electron_count(total_electron_count);
+        return;
+    }
     if (!(Occupy::use_gaussian_broadening || Occupy::fixed_occupations))
     {
         // Taoni fix smearing_method=fixed for BPCG on 2026-08-21
@@ -123,8 +173,7 @@ void calculate_weights(const ModuleBase::matrix& ekb,
         }
 #ifdef __MPI
         // demet is accumulated independently on every k-point and band partition.
-        const int npool = GlobalV::KPAR * PARAM.inp.bndpar;
-        Parallel_Reduce::reduce_double_allpool(npool, GlobalV::NPROC_IN_POOL, f_en.demet);
+        Parallel_Reduce::reduce_double_allpool(npool, nproc_in_pool, f_en.demet);
 #endif
     }
     else if (Occupy::fixed_occupations)

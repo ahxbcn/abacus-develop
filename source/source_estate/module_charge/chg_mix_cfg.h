@@ -27,6 +27,7 @@ struct MixingConfig
     bool domag;                ///< whether magnetism (non-collinear) is considered
     bool domag_z;              ///< whether only the z-component magnetism is considered
     int scf_nmax;              ///< max SCF iterations, sizes the drho oscillation history (PARAM.inp.scf_nmax)
+    bool gc_mixing;            ///< allow the G=0 charge density to enter the residual metric
 };
 
 #endif // CHG_MIX_CFG_H

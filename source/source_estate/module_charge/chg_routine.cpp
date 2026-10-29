@@ -67,6 +67,11 @@ void module_charge::chgmixing_ks(const int iter,
             }
         }
 
+        if (ctx.require_mixing)
+        {
+            conv_esolver = false;
+        }
+
         // If drho < hsolver_error in the first iter or drho < scf_thr, we
         // do not change rho.
         if (drho < hsolver_error || conv_esolver || inp.calculation == "nscf")

@@ -274,6 +274,8 @@ OBJS_ELECSTAT=elecstate.o\
     elecstate_exx.o\
     elecstate_print.o\
     elecstate_tools.o\
+    gce.o\
+    gce_reference.o\
     elecstate_pw.o\
     uspp_density.o\
     elecstate_pw_sdft.o\

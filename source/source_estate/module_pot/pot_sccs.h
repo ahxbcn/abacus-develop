@@ -37,6 +37,7 @@ public:
             const ModuleSccs::PolarizationSolverParameters& solver,
             double electron_count);
     void cal_v_eff(const Charge* charge, const UnitCell* cell, ModuleBase::matrix& potential) override;
+    void set_electron_count(double electron_count) { electron_count_ = electron_count; }
     double get_energy() const override;
     void add_sol_force(const UnitCell& cell, ModuleBase::matrix& force) const override;
     void sol_energy(double& electrostatic, double& non_electrostatic) const override;
@@ -45,7 +46,7 @@ public:
 private:
     const ModuleSccs::SccsConfig config_;
     const ModuleSccs::PolarizationSolverParameters solver_;
-    const double electron_count_;
+    double electron_count_;
     double electrostatic_rydberg_ = 0.0;
     double non_electrostatic_rydberg_ = 0.0;
     std::vector<double> electrostatic_potential_;

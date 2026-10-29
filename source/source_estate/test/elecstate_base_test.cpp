@@ -387,7 +387,8 @@ TEST_F(ElecStateTest, CalculateWeightsSkipWeights)
                                                  elecstate->f_en,
                                                  elecstate->nelec_spin,
                                                  GLOBAL_NBANDS,
-                                                 elecstate->skip_weights));
+                                                 elecstate->skip_weights,
+                                                 nullptr));
 }
 
 TEST_F(ElecStateDeathTest, CalculateWeightsFixedOccupations)
@@ -401,7 +402,8 @@ TEST_F(ElecStateDeathTest, CalculateWeightsFixedOccupations)
                                              elecstate->f_en,
                                              elecstate->nelec_spin,
                                              GLOBAL_NBANDS,
-                                             elecstate->skip_weights),
+                                             elecstate->skip_weights,
+                                             nullptr),
                 ::testing::ExitedWithCode(1),
                 "");
     output = testing::internal::GetCapturedStdout();
@@ -443,7 +445,8 @@ TEST_F(ElecStateTest, CalculateWeightsIWeights)
                                  elecstate->f_en,
                                  elecstate->nelec_spin,
                                  GLOBAL_NBANDS,
-                                 elecstate->skip_weights);
+                                 elecstate->skip_weights,
+                                 nullptr);
     EXPECT_DOUBLE_EQ(elecstate->wg(0, 0), 2.0);
     EXPECT_DOUBLE_EQ(elecstate->wg(nks - 1, PARAM.inp.nelec / 2 - 1), 2.0);
     EXPECT_DOUBLE_EQ(elecstate->wg(nks - 1, PARAM.inp.nbands - 1), 0.0);
@@ -514,7 +517,8 @@ TEST_F(ElecStateTest, CalculateWeightsIWeightsTwoFermi)
                                  elecstate->f_en,
                                  elecstate->nelec_spin,
                                  GLOBAL_NBANDS,
-                                 elecstate->skip_weights);
+                                 elecstate->skip_weights,
+                                 nullptr);
     EXPECT_DOUBLE_EQ(elecstate->wg(0, 0), 1.1);
     EXPECT_DOUBLE_EQ(elecstate->wg(nks - 1, PARAM.inp.nelec / 2 - 1), 1.0);
     EXPECT_DOUBLE_EQ(elecstate->wg(nks - 1, PARAM.inp.nbands - 1), 0.0);
@@ -558,7 +562,8 @@ TEST_F(ElecStateTest, CalculateWeightsGWeights)
                                  elecstate->f_en,
                                  elecstate->nelec_spin,
                                  GLOBAL_NBANDS,
-                                 elecstate->skip_weights);
+                                 elecstate->skip_weights,
+                                 nullptr);
     // nelec = 10;
     // nbands = 6;
     // nks = 5;
@@ -635,7 +640,8 @@ TEST_F(ElecStateTest, CalculateWeightsGWeightsTwoFermi)
                                  elecstate->f_en,
                                  elecstate->nelec_spin,
                                  GLOBAL_NBANDS,
-                                 elecstate->skip_weights);
+                                 elecstate->skip_weights,
+                                 nullptr);
     // nelec = 10;
     // nbands = 6;
     // nks = 10;

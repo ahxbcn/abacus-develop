@@ -1,8 +1,19 @@
 #ifndef GCE_H
 #define GCE_H
 
+class Charge;
+struct Input_para;
+class UnitCell;
+
+namespace ModulePW
+{
+class PW_Basis;
+}
+
 namespace elecstate
 {
+
+class Potential;
 
 struct GceConfig
 {
@@ -28,6 +39,7 @@ class GceState
 
     bool enabled() const;
     bool has_workfunction() const;
+    bool has_electron_count() const;
     double fermi_level() const;
     double workfunction() const;
     double workfunction_error() const;
@@ -50,6 +62,17 @@ class GceState
     double electron_count_ = 0.0;
     double previous_electron_count_ = 0.0;
 };
+
+/**
+ * @brief Return the planar-averaged electrostatic potential at the vacuum
+ *        minimum for a slab. All values returned by this function use Ry.
+ */
+double electrostatic_vacuum_reference(const Charge& charge,
+                                      const Potential& potential,
+                                      const UnitCell& cell,
+                                      int axis);
+
+void validate_gce_input(const Input_para& input);
 
 } // namespace elecstate
 

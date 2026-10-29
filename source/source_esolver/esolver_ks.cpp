@@ -1,5 +1,6 @@
 #include "esolver_ks.h"
 #include "source_base/timer_wrapper.h"
+#include "source_base/constants.h"
 
 // for jason output information
 #include "source_io/module_json/output_info.h"
@@ -9,6 +10,7 @@
 #include "source_estate/module_charge/chg_drho.h" // module_charge::cal_drho/cal_dkin
 #include "source_estate/module_charge/chg_init.h" // module_charge::InitRhoCfg
 #include "source_estate/module_charge/chg_tools.h" // module_charge::check_rho
+#include "source_estate/gce.h"
 #include "source_pw/module_pwdft/setup_pwwfc.h" // mohan add 20251018
 #include "source_hsolver/hsolver.h"
 #include "source_io/module_energy/write_eig_occ.h"
@@ -89,7 +91,8 @@ void ESolver_KS::before_all_runners(BaseCell& basecell, const Input_para& inp)
         PARAM.globalv.gamma_only_pw,                      // gamma_only_pw
         PARAM.globalv.domag,                              // domag
         PARAM.globalv.domag_z,                            // domag_z
-        inp.scf_nmax                                      // scf_nmax
+        inp.scf_nmax,                                     // scf_nmax
+        inp.gce                                           // gc_mixing
     };
 #pragma GCC diagnostic pop
     p_chgmix->set_mixing(mix_cfg, this->pw_rho, this->pw_rhod, ucell.omega, ucell.tpiba);
@@ -129,6 +132,9 @@ std::string ESolver_KS::diag_policy(const int istep) const
 void ESolver_KS::hamilt2rho(UnitCell& ucell, const int istep, const int iter, const double ethr)
 {
     const std::string policy = this->diag_policy(istep);
+    const double electron_count = (this->gce_state != nullptr && this->gce_state->has_electron_count())
+                                      ? this->gce_state->electron_count()
+                                      : this->inp_->nelec;
     // 1) use Hamiltonian to obtain charge density
     this->hamilt2rho_single(ucell, istep, iter, diag_ethr);
 
@@ -141,13 +147,13 @@ void ESolver_KS::hamilt2rho(UnitCell& ucell, const int istep, const int iter, co
     // example wavefunctions uses 20 processors while density uses 10.
     if (PARAM.globalv.ks_run)
     {
-        drho = module_charge::cal_drho(&this->chr, this->inp_->nelec, *this->pw_rho,
+        drho = module_charge::cal_drho(&this->chr, electron_count, *this->pw_rho,
                                        p_chgmix->get_mixing_config(), ucell.omega, ucell.tpiba);
         hsolver_error = 0.0;
         if (iter == 1 && this->inp_->calculation != "nscf")
         {
             hsolver_error
-                = hsolver::cal_hsolve_error(this->inp_->basis_type, policy, diag_ethr, this->inp_->nelec);
+                = hsolver::cal_hsolve_error(this->inp_->basis_type, policy, diag_ethr, electron_count);
 
             // The error of HSolver is larger than drho,
             // so a more precise HSolver should be executed.
@@ -155,15 +161,15 @@ void ESolver_KS::hamilt2rho(UnitCell& ucell, const int istep, const int iter, co
             {
                 diag_ethr = hsolver::reset_diag_ethr(GlobalV::ofs_running, this->inp_->basis_type,
                             policy, this->inp_->precision, hsolver_error,
-                            drho, diag_ethr, this->inp_->nelec);
+                            drho, diag_ethr, electron_count);
 
                 this->hamilt2rho_single(ucell, istep, iter, diag_ethr);
 
-                drho = module_charge::cal_drho(&this->chr, this->inp_->nelec, *this->pw_rho,
+                drho = module_charge::cal_drho(&this->chr, electron_count, *this->pw_rho,
                                                p_chgmix->get_mixing_config(), ucell.omega, ucell.tpiba);
 
                 hsolver_error = hsolver::cal_hsolve_error(this->inp_->basis_type,
-                                policy, diag_ethr, this->inp_->nelec);
+                                policy, diag_ethr, electron_count);
             }
         }
     }
@@ -320,9 +326,24 @@ void ESolver_KS::iter_finish(UnitCell& ucell, const int istep, int& iter, bool &
     }
 
     // 2.1) compute magnetization, only for spin==2
+    const double electron_count = (this->gce_state != nullptr && this->gce_state->has_electron_count())
+                                      ? this->gce_state->electron_count()
+                                      : this->inp_->nelec;
     ucell.magnet.compute_mag(ucell.omega, this->chr.nrxx, this->chr.nxyz, this->chr.rho,
-                                       this->inp_->nspin, PARAM.globalv.two_fermi, this->inp_->nelec,
+                                       this->inp_->nspin, PARAM.globalv.two_fermi, electron_count,
                                        this->pelec->nelec_spin.data());
+
+    if (this->gce_state != nullptr)
+    {
+        const double reference_potential = elecstate::electrostatic_vacuum_reference(
+            this->chr, *this->pelec->pot, ucell, this->inp_->pcc_2d_axis);
+        this->gce_state->update_workfunction(reference_potential, this->pelec->eferm.ef);
+        this->pelec->pot->set_expected_electron_count(this->gce_state->electron_count());
+        if (!this->gce_state->converged())
+        {
+            conv_esolver = false;
+        }
+    }
 
     // 2.2) charge mixing
     // SCF will continue if U is not converged for uramping calculation
@@ -341,6 +362,7 @@ void ESolver_KS::iter_finish(UnitCell& ucell, const int istep, int& iter, bool &
     ctx.scf_ene_thr = this->scf_ene_thr;
     ctx.converged_u = converged_u;
     ctx.ks_run = PARAM.globalv.ks_run;
+    ctx.require_mixing = this->gce_state != nullptr && !this->gce_state->converged();
     ctx.drho = this->drho;
     ctx.oscillate_esolver = this->oscillate_esolver;
     ctx.conv_esolver = conv_esolver;
@@ -400,7 +422,8 @@ void ESolver_KS::iter_finish(UnitCell& ucell, const int istep, int& iter, bool &
 
     // print energies
     elecstate::print_etot(ucell.magnet, *pelec, conv_esolver, iter, drho,
-    dkin, duration, *this->inp_, PARAM.globalv.two_fermi, diag_ethr, 0, true, this->ds_rms_);
+    dkin, duration, *this->inp_, PARAM.globalv.two_fermi, this->gce_state.get(),
+    diag_ethr, 0, true, this->ds_rms_);
 
 
 #ifdef __JSON

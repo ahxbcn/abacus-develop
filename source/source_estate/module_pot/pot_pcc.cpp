@@ -292,7 +292,7 @@ void PotPcc::cal_v_eff(const Charge* charge, const UnitCell* cell, ModuleBase::m
     // the mismatch. The moments are pool-reduced, so every rank agrees.
     const double expected_charge = ionic_moments.charge - electron_count_;
     const double charge_error = moments_.charge - expected_charge;
-    if (std::abs(charge_error) > 1.0e-6)
+    if (charge_check_enabled_ && std::abs(charge_error) > 1.0e-6)
     {
         std::ostringstream message;
         message << "PCC net charge differs from the expected value by " << charge_error

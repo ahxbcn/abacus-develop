@@ -2,6 +2,7 @@
 #include "source_pw/module_pwdft/pw_hybrid_nscf.h"
 
 #include "source_estate/elecstate_pw.h"
+#include "source_estate/gce.h"
 #include "source_estate/module_charge/chg_symm.h"
 #include "source_hamilt/hamilt_hs_adapter.h"
 #include "source_hsolver/diago_iter_assist.h"
@@ -83,6 +84,19 @@ void ESolver_KS_PW<T, Device>::before_all_runners(BaseCell& basecell, const Inpu
     UnitCell& ucell = static_cast<UnitCell&>(basecell);
 
     ESolver_KS::before_all_runners(ucell, inp);
+
+    if (inp.gce)
+    {
+        elecstate::validate_gce_input(inp);
+        elecstate::GceConfig config;
+        config.enabled = true;
+        config.reference_electron_count = inp.nelec;
+        config.target_workfunction = inp.gce_target_workfunction / ModuleBase::Ry_to_eV;
+        config.mixing_beta = inp.gce_mixing_beta;
+        config.workfunction_tolerance = inp.gce_wf_tol / ModuleBase::Ry_to_eV;
+        config.electron_count_tolerance = inp.gce_nelec_tol;
+        this->gce_state.reset(new elecstate::GceState(config));
+    }
 
     pw::validate_hybrid_nscf(inp, this->general_exx_info_);
 
@@ -166,6 +180,11 @@ void ESolver_KS_PW<T, Device>::before_scf(UnitCell& ucell, const int istep)
     ModuleBase::timer::start("ESolver_KS_PW", "before_scf");
 
     ESolver_KS::before_scf(ucell, istep);
+
+    if (this->gce_state != nullptr)
+    {
+        this->gce_state->reset();
+    }
 
     //! Init variables (once the cell has changed)
     pw::update_cell_pw(ucell, this->ppcell, this->kv, this->pw_wfc, *this->inp_);
@@ -328,7 +347,8 @@ void ESolver_KS_PW<T, Device>::hamilt2rho_single(UnitCell& ucell, const int iste
                              GlobalV::RANK_IN_POOL,
                              GlobalV::NPROC_IN_POOL,
                              GlobalV::ofs_running,
-                             skip_charge);
+                             skip_charge,
+                             this->gce_state.get());
     }
 
     // symmetrize the charge density

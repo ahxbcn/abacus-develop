@@ -73,6 +73,22 @@ TEST_F(InputDomainReaderTest, KeepsExplicitValuesAndContextualDefaults)
     EXPECT_EQ(input.inp.gga_grad, 0);
 }
 
+TEST_F(InputDomainReaderTest, ParsesGrandCanonicalScfControls)
+{
+    write_input("gce true\ngce_target_workfunction 3.5\n"
+                "gce_mixing_beta 0.2\ngce_wf_tol 0.002\ngce_nelec_tol 1.0e-7\n");
+    ModuleIO::ReadInput reader(0);
+    reader.check_ntype_flag = false;
+    Parameter input;
+    reader.read_parameters(input, filename);
+
+    EXPECT_TRUE(input.inp.gce);
+    EXPECT_DOUBLE_EQ(input.inp.gce_target_workfunction, 3.5);
+    EXPECT_DOUBLE_EQ(input.inp.gce_mixing_beta, 0.2);
+    EXPECT_DOUBLE_EQ(input.inp.gce_wf_tol, 0.002);
+    EXPECT_DOUBLE_EQ(input.inp.gce_nelec_tol, 1.0e-7);
+}
+
 TEST_F(InputDomainReaderTest, RejectsMalformedAndOutOfDomainExplicitValues)
 {
     for (const std::string value : {"3", "0", "-1", "2abc", "2.0", "2 4", "999999999999999999999"})
@@ -253,7 +269,8 @@ TEST_F(InputDomainReaderTest, ChecksTypesRangesAndDependenciesThroughOnePath)
         {"mixing_beta -0.5", "mixing-beta"}, {"cal_force maybe", "cal-force"},
         {"symmetry 2", "symmetry"}, {"fft_mode 4", "fft-mode"},
         {"md_thermostat unknown", "md-thermostat"}, {"lin_maxiter 0", "lin-maxiter"},
-        {"out_wfc_lcao 1", "out-wfc-lcao"}, {"dip_cor_flag true", "dip-cor-flag"}};
+        {"out_wfc_lcao 1", "out-wfc-lcao"}, {"dip_cor_flag true", "dip-cor-flag"},
+        {"gce_mixing_beta 0", "gce-mixing-beta"}, {"gce_wf_tol -1", "gce-wf-tol"}};
     for (const auto& example : invalid)
     {
         const std::string output = reject_input(example.first + "\n");

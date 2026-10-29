@@ -1,5 +1,8 @@
 #include "gce.h"
 
+#include "source_base/tool_quit.h"
+#include "source_io/module_parameter/parameter.h"
+
 #include <cmath>
 
 namespace elecstate
@@ -19,6 +22,11 @@ bool GceState::enabled() const
 bool GceState::has_workfunction() const
 {
     return has_workfunction_;
+}
+
+bool GceState::has_electron_count() const
+{
+    return has_electron_count_;
 }
 
 double GceState::fermi_level() const
@@ -90,8 +98,64 @@ void GceState::update_workfunction(const double reference_potential, const doubl
     const double mixed_workfunction = (1.0 - config_.mixing_beta) * current_workfunction
                                       + config_.mixing_beta * config_.target_workfunction;
     fermi_level_ = reference_potential - mixed_workfunction;
-    workfunction_ = mixed_workfunction;
+    workfunction_ = current_workfunction;
     has_workfunction_ = true;
+}
+
+void validate_gce_input(const Input_para& input)
+{
+    if (!input.gce)
+    {
+        return;
+    }
+    if (input.basis_type != "pw")
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input", "GC-SCF prototype requires basis_type=pw");
+    }
+    if (input.esolver_type != "ksdft" || input.calculation != "scf")
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype requires esolver_type=ksdft and calculation=scf");
+    }
+    if (input.nspin != 1 && input.nspin != 2)
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input", "GC-SCF prototype supports nspin=1 or 2");
+    }
+    if (input.smearing_method != "fd" && input.smearing_method != "fermi-dirac")
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype requires Fermi-Dirac smearing");
+    }
+    if (input.assume_isolated != "pcc_2d")
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype requires assume_isolated=pcc_2d");
+    }
+    if (input.scf_thr_type != 1)
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype requires scf_thr_type=1");
+    }
+    if (input.mixing_gg0 <= 0.0 || !std::isfinite(input.gce_target_workfunction)
+        || !std::isfinite(input.smearing_sigma) || input.smearing_sigma <= 0.0)
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype requires positive Kerker screening, target work function, "
+                                 "and smearing width");
+    }
+    if (input.nelec <= 0.0 || input.nbands <= 0 || input.nbands * 2 <= input.nelec)
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype requires explicit nbands with empty states");
+    }
+    if (input.nupdown != 0.0 || input.dft_plus_u || input.dfthalf_type != 0 || input.ocp
+        || input.efield_flag || input.gate_flag || input.imp_sol == 1 || input.cal_force
+        || input.cal_stress)
+    {
+        ModuleBase::WARNING_QUIT("validate_gce_input",
+                                 "GC-SCF prototype does not support fixed spin difference, DFT+U, "
+                                 "DFT-1/2, fixed occupations, electric/gate fields, forces/stress, or imp_sol=1");
+    }
 }
 
 } // namespace elecstate

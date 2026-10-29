@@ -58,6 +58,8 @@ class PotPcc : public PotBase
     static void validate_kpoints(const std::vector<ModuleBase::Vector3<double>>& points, int count, int open_axis);
 
     void cal_v_eff(const Charge* charge, const UnitCell* cell, ModuleBase::matrix& potential) override;
+    void set_electron_count(double electron_count) { electron_count_ = electron_count; }
+    void set_charge_check_enabled(bool enabled) { charge_check_enabled_ = enabled; }
     double get_energy() const override;
     const std::vector<double>& electron_potential() const;
     void add_force(const UnitCell& cell, ModuleBase::matrix& force) const;
@@ -75,7 +77,8 @@ class PotPcc : public PotBase
 
     const Dimension dimension_;
     const int open_axis_;
-    const double electron_count_;
+    double electron_count_;
+    bool charge_check_enabled_ = true;
     unitcell::SlabCell slab_;
     Pcc2dParameters slab_parameters_;
     unitcell::OrthogonalCell geometry_;

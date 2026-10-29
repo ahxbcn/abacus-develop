@@ -24,14 +24,14 @@ TEST(GceStateTest, WorkfunctionMixingAndElectronBookkeeping)
     state.update_electron_count(9.8);
     state.update_workfunction(-2.0, -7.0);
     EXPECT_TRUE(state.has_workfunction());
-    EXPECT_NEAR(state.workfunction(), 4.5, 1.0e-14);
+    EXPECT_NEAR(state.workfunction(), 5.0, 1.0e-14);
     EXPECT_NEAR(state.fermi_level(), -6.5, 1.0e-14);
     EXPECT_NEAR(state.electron_count_change(), -0.2, 1.0e-14);
-    EXPECT_NEAR(state.free_energy_correction(), 0.9, 1.0e-14);
+    EXPECT_NEAR(state.free_energy_correction(), 1.0, 1.0e-14);
 
     state.update_electron_count(9.8);
     state.update_workfunction(-2.2, -6.7);
-    EXPECT_NEAR(state.workfunction(), 4.25, 1.0e-14);
+    EXPECT_NEAR(state.workfunction(), 4.5, 1.0e-14);
     EXPECT_NEAR(state.fermi_level(), -6.45, 1.0e-14);
     EXPECT_FALSE(state.converged());
 }

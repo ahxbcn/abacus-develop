@@ -95,7 +95,8 @@ void HSolverLCAO<TK>::solve(HSMatrix<TK>& hs,
                                      pes->f_en,
                                      pes->nelec_spin,
                                      this->nbands,
-                                     pes->skip_weights);
+                                     pes->skip_weights,
+                                     nullptr);
 
         elecstate::calEBand(pes->ekb, pes->wg, pes->f_en);
         module_dm::dm_from_psi(this->ParaV, pes->wg, psi, dm);

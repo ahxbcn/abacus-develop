@@ -74,7 +74,7 @@ AddTest(
 AddTest(
   TARGET MODULE_ESTATE_elecstate_print
   LIBS parameter  base device symmetry
-  SOURCES elecstate_print_test.cpp ../elecstate_print.cpp ../occupy.cpp
+  SOURCES elecstate_print_test.cpp ../elecstate_print.cpp ../gce.cpp ../occupy.cpp
   ../../source_cell/klist.cpp ../../source_cell/klist_io.cpp ../../source_cell/parallel_kpoints.cpp ../../source_cell/reciprocal_grid.cpp
 )
 
@@ -82,7 +82,7 @@ AddTest(
   TARGET MODULE_ESTATE_elecstate_base
   KEEP_FEATURE_DEFINITIONS __MPI
   LIBS parameter  base device symmetry
-  SOURCES elecstate_base_test.cpp ../elecstate.cpp  ../elecstate_tools.cpp ../occupy.cpp ../../source_psi/psi.cpp
+  SOURCES elecstate_base_test.cpp ../elecstate.cpp ../elecstate_tools.cpp ../gce.cpp ../fp_energy.cpp ../occupy.cpp ../../source_psi/psi.cpp
   ../../source_base/module_fft/fft_bundle.cpp ../../source_base/module_fft/fft_cpu.cpp
   ../../source_cell/klist.cpp ../../source_cell/klist_io.cpp ../../source_cell/parallel_kpoints.cpp ../../source_cell/reciprocal_grid.cpp
 )

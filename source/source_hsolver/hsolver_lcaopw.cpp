@@ -68,7 +68,8 @@ void HSolverLIP<T>::solve(HSOperator<T>& op,       // ESolver_KS_PW::p_hamilt be
                                  pes->f_en,
                                  pes->nelec_spin,
                                  this->global_nbands,
-                                 pes->skip_weights);
+                                 pes->skip_weights,
+                                 nullptr);
     elecstate::calEBand(pes->ekb,pes->wg,pes->f_en);
     if (skip_charge)
     {

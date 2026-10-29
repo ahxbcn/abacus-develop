@@ -5,6 +5,7 @@
 #include "source_base/timer.h"
 #include "source_basis/module_pw/pw_basis.h"
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <vector>
@@ -18,7 +19,7 @@ namespace
 {
 
 /// Coulomb-metric sum over G!=0 for a single spin channel
-double coulomb_sum_single(const std::complex<double>* g1, const std::complex<double>* g2, const ModulePW::PW_Basis& rhopw, const double fac)
+double coulomb_sum_single(const std::complex<double>* g1, const std::complex<double>* g2, const ModulePW::PW_Basis& rhopw, const double fac, const double g0_weight)
 {
     const int ig0 = rhopw.ig_gge0;
     double sum = 0.0;
@@ -29,6 +30,7 @@ double coulomb_sum_single(const std::complex<double>* g1, const std::complex<dou
     {
         if (ig == ig0)
         {
+            sum += g0_weight * (conj(g1[ig]) * g2[ig]).real();
             continue;
         }
         sum += (conj(g1[ig]) * g2[ig]).real() / rhopw.gg[ig];
@@ -40,9 +42,12 @@ double coulomb_sum_single(const std::complex<double>* g1, const std::complex<dou
 double recip_rho_nspin1(const std::complex<double>* rho1,
                         const std::complex<double>* rho2,
                         const ModulePW::PW_Basis& rhopw,
+                        const MixingConfig& cfg,
                         const double fac)
 {
-    return coulomb_sum_single(rho1, rho2, rhopw, fac);
+    const double q0 = std::max(cfg.mixing_gg0, 1.0e-8);
+    const double g0_weight = cfg.gc_mixing ? 1.0 / (q0 * q0) : 0.0;
+    return coulomb_sum_single(rho1, rho2, rhopw, fac, g0_weight);
 }
 
 /// Collinear magnetic case (nspin==2)
@@ -58,6 +63,8 @@ double recip_rho_nspin2(const std::complex<double>* rho1,
 
     // (1) density part: |rho_up + rho_dn|^2 / G^2
     double sum = 0.0;
+    const double q0 = std::max(cfg.mixing_gg0, 1.0e-8);
+    const double g0_weight = cfg.gc_mixing ? 1.0 / (q0 * q0) : 0.0;
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+ : sum)
 #endif
@@ -65,6 +72,7 @@ double recip_rho_nspin2(const std::complex<double>* rho1,
     {
         if (ig == ig0)
         {
+            sum += g0_weight * (conj(rho1[ig] + rho1[ig + npw]) * (rho2[ig] + rho2[ig + npw])).real();
             continue;
         }
         sum += (conj(rho1[ig] + rho1[ig + npw]) * (rho2[ig] + rho2[ig + npw])).real() / rhopw.gg[ig];
@@ -358,7 +366,7 @@ double inner_product_recip_rho(const std::complex<double>* rho1,
     switch (nspin)
     {
     case 1:
-        sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, fac);
+        sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, cfg, fac);
         break;
     case 2:
         sum += recip_rho_nspin2(rhog1[0], rhog2[0], rhopw, cfg, fac, fac2);
@@ -366,7 +374,7 @@ double inner_product_recip_rho(const std::complex<double>* rho1,
     case 4:
         if (!cfg.domag && !cfg.domag_z)
         {
-            sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, fac);
+            sum += recip_rho_nspin1(rhog1[0], rhog2[0], rhopw, cfg, fac);
         }
         else
         {
@@ -402,10 +410,12 @@ double inner_product_recip_hartree(const std::complex<double>* rhog1,
     static const double fac2 = ModuleBase::e2 * ModuleBase::FOUR_PI / (ModuleBase::TWO_PI * ModuleBase::TWO_PI);
 
     double sum = 0.0;
+    const double q0 = std::max(cfg.mixing_gg0, 1.0e-8);
+    const double g0_weight = cfg.gc_mixing ? 1.0 / (q0 * q0) : 0.0;
 
     if (cfg.nspin == 1)
     {
-        sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, fac);
+        sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, fac, g0_weight);
     }
     else if (cfg.nspin == 2)
     {
@@ -415,7 +425,7 @@ double inner_product_recip_hartree(const std::complex<double>* rhog1,
     {
         if (!cfg.domag && !cfg.domag_z)
         {
-            sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, fac);
+            sum += detail::coulomb_sum_single(rhog1, rhog2, rhopw, fac, g0_weight);
         }
         else if (cfg.mixing_angle <= 0)
         {
