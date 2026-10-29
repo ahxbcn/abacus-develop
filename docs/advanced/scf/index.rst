@@ -10,5 +10,6 @@ Running SCF
    hsolver
    converge
    performance
+   gc_scf
    advanced
    spin
